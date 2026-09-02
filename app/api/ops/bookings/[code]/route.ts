@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isOps } from "@/lib/auth";
+import { actorAllows, requireOpsApi } from "@/lib/auth";
 import { BOOKING_STATUSES } from "@/lib/constants";
 import { issuePayLaterInvoice, markPaid, markPayLater } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 
 export async function PATCH(req: NextRequest, { params }: { params: { code: string } }) {
-  if (!isOps()) {
-    return NextResponse.json({ error: "Ops sign-in required" }, { status: 401 });
-  }
+  const gate = await requireOpsApi();
+  if (!gate.actor) return NextResponse.json({ error: gate.error }, { status: gate.status });
 
   const code = decodeURIComponent(params.code);
   const booking = await prisma.booking.findUnique({ where: { bookingCode: code } });
@@ -21,6 +20,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { code: stri
     action?: "issue_invoice" | "pay_later" | "mark_paid";
     amountUsd?: number;
   };
+
+  if (body.status || body.note) {
+    if (!(await actorAllows(gate.actor, "update_tracking"))) {
+      return NextResponse.json({ error: "That seat cannot update tracking." }, { status: 403 });
+    }
+  }
+  if (body.action && !(await actorAllows(gate.actor, "issue_invoice"))) {
+    return NextResponse.json({ error: "That seat cannot issue invoice / pay later." }, { status: 403 });
+  }
 
   if (body.status) {
     if (!BOOKING_STATUSES.includes(body.status as (typeof BOOKING_STATUSES)[number])) {
@@ -40,7 +48,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { code: stri
   }
 
   if (body.action === "issue_invoice") {
-    const amount = Number(body.amountUsd);
+    const amount = Number(body.amountUsd ?? booking.invoiceUsd ?? booking.estimateUsd);
     if (!amount || amount <= 0) {
       return NextResponse.json({ error: "Enter an invoice amount" }, { status: 400 });
     }
@@ -52,7 +60,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { code: stri
         invoiceStatus: invoice.status,
         invoiceRef: invoice.reference,
         paymentProvider: invoice.provider,
-        status: booking.status === "REQUESTED" ? "INVOICE_ISSUED" : booking.status,
+        status: booking.status === "REQUESTED" || booking.status === "CONFIRMED" ? "INVOICE_ISSUED" : booking.status,
       },
     });
     await prisma.trackingEvent.create({

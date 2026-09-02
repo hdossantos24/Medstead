@@ -58,7 +58,7 @@ function LoginForm() {
           return;
         }
         router.refresh();
-        router.push("/account");
+        router.push(data.home || "/account");
       }}
     >
       <Field label="Email">
@@ -103,7 +103,7 @@ function SignupForm() {
           return;
         }
         router.refresh();
-        router.push("/account");
+        router.push(data.home || "/account");
       }}
     >
       <Field label="Full name">

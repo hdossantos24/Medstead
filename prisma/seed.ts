@@ -1,19 +1,66 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { DEFAULT_RULES, PERMISSIONS, type StaffRole } from "../lib/staff";
 
 const prisma = new PrismaClient();
 
+async function ensureRules() {
+  for (const role of Object.keys(DEFAULT_RULES) as StaffRole[]) {
+    for (const key of PERMISSIONS) {
+      await prisma.staffRule.upsert({
+        where: { role_key: { role, key } },
+        update: {},
+        create: { role, key, allowed: DEFAULT_RULES[role].includes(key) },
+      });
+    }
+  }
+}
+
+async function maybeSeedDemoStaff() {
+  if (process.env.SEED_DEMO_STAFF !== "1") return;
+  const password = process.env.DEMO_STAFF_PASSWORD || "";
+  if (password.length < 8) {
+    console.warn("SEED_DEMO_STAFF=1 skipped — set DEMO_STAFF_PASSWORD (8+ chars).");
+    return;
+  }
+  const passwordHash = await bcrypt.hash(password, 10);
+  const seats: Array<{ email: string; name: string; role: StaffRole }> = [
+    { email: "staff@medstead.demo", name: "Chris Ops", role: "STAFF" },
+    { email: "pilot@medstead.demo", name: "Pilot Seat", role: "PILOT" },
+    { email: "cargo@medstead.demo", name: "Cargo Desk", role: "CARGO" },
+  ];
+  for (const seat of seats) {
+    await prisma.user.upsert({
+      where: { email: seat.email },
+      update: { passwordHash, role: seat.role, active: true, name: seat.name },
+      create: {
+        email: seat.email,
+        passwordHash,
+        name: seat.name,
+        role: seat.role,
+        active: true,
+      },
+    });
+  }
+  console.log("Seeded demo staff seats (staff / pilot / cargo @medstead.demo).");
+}
+
 async function main() {
+  await ensureRules();
+  await maybeSeedDemoStaff();
+
   const passwordHash = await bcrypt.hash("storefront1234", 10);
 
   const customer = await prisma.user.upsert({
     where: { email: "customer@medstead.demo" },
-    update: { passwordHash },
+    update: { passwordHash, role: "CUSTOMER", active: true },
     create: {
       email: "customer@medstead.demo",
       passwordHash,
       name: "Alex Rivera",
       phone: "+1 954 555 0144",
+      role: "CUSTOMER",
+      active: true,
     },
   });
 
@@ -112,6 +159,40 @@ async function main() {
             { status: "CONFIRMED", note: "Lane confirmed. Invoice will follow." },
           ],
         },
+      },
+    });
+  }
+
+  const nas = await prisma.booking.findUnique({ where: { bookingCode: "MS-20260820-FLL-NAS-0001" } });
+  if (nas && !nas.movementId) {
+    const movement = await prisma.movement.upsert({
+      where: { movementCode: "MS-20260820-FLL-NAS-TRIP" },
+      update: {},
+      create: {
+        movementCode: "MS-20260820-FLL-NAS-TRIP",
+        kind: "CARGO",
+        status: "SCHEDULED",
+        originCode: "FLL",
+        destCode: "NAS",
+        capacityWeightLb: 400,
+        capacityPieces: 12,
+        notes: "Demo cargo movement for the owned store. Not a live airline product.",
+      },
+    });
+    await prisma.booking.update({
+      where: { id: nas.id },
+      data: { movementId: movement.id },
+    });
+    await prisma.movementDocument.upsert({
+      where: { id: "seed-awb-fll-nas" },
+      update: {},
+      create: {
+        id: "seed-awb-fll-nas",
+        kind: "AIR_WAYBILL",
+        reference: "AWB-MS-20260820-FLL-NAS-0001",
+        note: "Seed AWB stub. Public freight IDs stay MS-.",
+        movementId: movement.id,
+        bookingId: nas.id,
       },
     });
   }

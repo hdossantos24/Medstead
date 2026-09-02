@@ -10,8 +10,11 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed-admin": "tsx scripts/seed-admin.ts",
     "db:setup": "prisma db push && tsx prisma/seed.ts",
+    "test:staff": "tsx lib/staff.test.ts",
     "cap:sync": "cap sync",
     "cap:ios": "cap open ios"
   },

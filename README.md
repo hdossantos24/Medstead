@@ -22,7 +22,7 @@ This is **not** the company OS (airline dispatch, CRM, accounting, WMS). Those l
 - Services: Express Air 3–5 days, Standard Sea 5–7 days, Freeport & Nassau pickup, customs support, live tracking
 - Bahamas freight is a product, not the only product. Hard-to-reach medical transport uses the same form
 - Request + confirmation + invoice / pay later. **No card is charged.** A payment rail can be attached later — do not invent Stripe keys
-- Ops desk (`/ops`) can confirm, issue an invoice, mark pay-later or paid offline, and push tracking events
+- Ops desk (`/ops`) is employee login (email + password) with roles admin / staff / pilot / cargo. Shared `OPS_PIN` remains break-glass only. Staff can confirm, issue an invoice, mark pay-later or paid offline, push tracking, and assign next actions.
 - Contact: [Orders@medsteadgroup.com](mailto:Orders@medsteadgroup.com)
 - Official Transport lockup (globe / ship / plane / truck, green cross in the D)
 - Navy `#060F22`, green `#16A34A` / `#22C55E`, blue `#2563EB`, Inter
@@ -52,11 +52,21 @@ Open [http://localhost:3000](http://localhost:3000).
 | `/track` and `/track/[code]` | Tracking |
 | `/account` | Signup / login / my bookings |
 | `/support` | Orders desk |
-| `/ops` | Internal tracking + invoice (PIN from `.env`) |
+| `/ops` | Staff desk — email+password (PIN is break-glass) |
 
 Demo customer (README only — not shown on public pages): `customer@medstead.demo` / `storefront1234`  
 Demo tracking ID: `MS-20260820-FLL-NAS-0001`  
-Local ops PIN: `local-ops` (change `OPS_PIN` before any public deploy)
+Local ops PIN: `local-ops` (break-glass only; change `OPS_PIN` before any public deploy)
+
+### First admin + staff
+
+```bash
+ADMIN_EMAIL=hdossantos@medsteadgroup.com ADMIN_PASSWORD='choose-a-long-password' npm run db:seed-admin
+```
+
+That creates (or promotes) Hairson as `ADMIN`. Then sign in at `/ops`. Admin → People to create staff / pilot / cargo seats and toggle rules. Optional local demo seats: `SEED_DEMO_STAFF=1 DEMO_STAFF_PASSWORD='…' npm run db:seed`.
+
+The future **MTG Airways** app is separate. It will call `/api/integrations/airline/*` against this platform (see `docs/AIRLINE_SEAM.md`). No airline booking site is shipped here. Part 135 is not live.
 
 Production build:
 
