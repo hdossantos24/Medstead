@@ -28,6 +28,7 @@ assert.strictEqual(defaultAllowed("ADMIN", "manage_employees"), true);
 assert.strictEqual(defaultAllowed("STAFF", "manage_employees"), false);
 assert.strictEqual(defaultAllowed("PILOT", "view_trips"), true);
 assert.strictEqual(defaultAllowed("CARGO", "issue_invoice"), false);
+assert.strictEqual(defaultAllowed("CARGO", "view_trips"), true);
 assert.ok(!PIN_PERMISSIONS.includes("manage_employees"));
 
 assert.strictEqual(

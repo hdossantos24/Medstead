@@ -20,7 +20,7 @@ export const DEFAULT_RULES: Record<StaffRole, Permission[]> = {
   ADMIN: [...PERMISSIONS],
   STAFF: ["update_tracking", "issue_invoice", "view_all_bookings", "assign_work"],
   PILOT: ["view_trips"],
-  CARGO: ["update_tracking", "view_cargo_queue", "view_all_bookings"],
+  CARGO: ["update_tracking", "view_cargo_queue", "view_all_bookings", "view_trips"],
 };
 
 /** Break-glass OPS_PIN: tracking + invoice only. Not people or schedule. */
