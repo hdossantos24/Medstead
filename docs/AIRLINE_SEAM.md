@@ -1,8 +1,10 @@
 # Airline integration seam
 
-The **airline product (MTG Airways)** is a **separate app later**. This repo is the MedStead company platform: freight store, ops desk, staff directory, assignments, and the shared schedule/docs tables the airline app will call.
+**Internal airline ops run here now** on staff desks (`/ops/trips`, cargo/pilot/admin). The **public** MTG Airways customer app is later and will call this backend.
 
-Part 135 is **not live**. Internal `operatorName` is **MTG Airways** (never STEADAIR). No public charter booker lives here.
+This repo is the MedStead company platform: freight store, ops desk, staff directory, assignments, and the shared schedule/docs tables.
+
+Part 135 is **not live**. Internal `operatorName` is **MTG Airways** (never STEADAIR). No public airline marketing or booking door on this store.
 
 ## MedStead owns
 

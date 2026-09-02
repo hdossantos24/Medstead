@@ -88,7 +88,9 @@ export default async function OpsPage() {
         <Card className="p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Shared schedule</p>
           <p className="mt-2 text-3xl font-semibold text-navy-950">{movements} movements</p>
-          <p className="mt-1 text-sm text-navy-800/60">Cargo now. Passenger legs reserved for the MTG Airways app.</p>
+          <p className="mt-1 text-sm text-navy-800/60">
+            Internal cargo + passenger board. Public airline door is later.
+          </p>
         </Card>
       </div>
 
