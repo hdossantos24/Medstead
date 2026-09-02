@@ -196,6 +196,20 @@ async function main() {
       },
     });
   }
+
+  await prisma.movement.upsert({
+    where: { movementCode: "MTG-20260821-FLL-NAS-INT" },
+    update: {},
+    create: {
+      movementCode: "MTG-20260821-FLL-NAS-INT",
+      kind: "PASSENGER",
+      status: "REQUESTED",
+      originCode: "FLL",
+      destCode: "NAS",
+      capacitySeats: 4,
+      notes: "Internal passenger placeholder. Not a public charter product.",
+    },
+  });
 }
 
 main()

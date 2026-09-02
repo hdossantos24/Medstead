@@ -17,6 +17,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     assignedPilotId?: string | null;
     status?: MovementStatusName;
     notes?: string | null;
+    bookingCode?: string | null;
   };
 
   if (body.status && !MOVEMENT_STATUSES.includes(body.status)) {
@@ -38,6 +39,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       notes: body.notes === undefined ? movement.notes : body.notes,
     },
   });
+
+  if (body.bookingCode) {
+    const booking = await prisma.booking.findUnique({ where: { bookingCode: body.bookingCode.trim() } });
+    if (!booking) return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+    await prisma.booking.update({ where: { id: booking.id }, data: { movementId: updated.id } });
+  }
 
   if (body.assignedPilotId && body.assignedPilotId !== movement.assignedPilotId) {
     await prisma.workAssignment.create({

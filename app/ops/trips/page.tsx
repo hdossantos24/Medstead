@@ -1,5 +1,5 @@
 import { NextQueue } from "@/components/next-queue";
-import { AssignPilotForm } from "@/components/trip-desk";
+import { AssignPilotForm, AttachBookingForm, CreateMovementForm } from "@/components/trip-desk";
 import { Badge, Card } from "@/components/ui";
 import { actorAllows, requireStaffPage } from "@/lib/auth";
 import { loadDeskQueue } from "@/lib/desk";
@@ -30,13 +30,21 @@ export default async function TripsPage() {
     orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }],
   });
 
-  const pilots = canAssign
-    ? await prisma.user.findMany({
-        where: { role: { in: ["PILOT", "ADMIN"] }, active: true },
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      })
-    : [];
+  const [pilots, bookings] = canAssign
+    ? await Promise.all([
+        prisma.user.findMany({
+          where: { role: { in: ["PILOT", "ADMIN"] }, active: true },
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        }),
+        prisma.booking.findMany({
+          where: { status: { not: "DELIVERED" } },
+          select: { bookingCode: true },
+          orderBy: { createdAt: "desc" },
+          take: 40,
+        }),
+      ])
+    : [[], []];
 
   const briefs = items.filter((i) => i.kind === "acknowledge_brief" || i.id === "pilot-clear");
   const eyebrow =
@@ -51,6 +59,12 @@ export default async function TripsPage() {
         airline door on this site and Part 135 is not live. A later MTG Airways customer app will
         write more legs into the same schedule.
       </p>
+
+      {canAssign && (
+        <div className="mt-8">
+          <CreateMovementForm pilots={pilots} bookings={bookings} />
+        </div>
+      )}
 
       {(role === "PILOT" || role === "ADMIN") && (
         <div className="mt-8">
@@ -100,8 +114,13 @@ export default async function TripsPage() {
                 ))}
               </div>
             )}
-            {canAssign && pilots.length > 0 && (
-              <AssignPilotForm movementId={m.id} pilots={pilots} currentPilotId={m.assignedPilotId} />
+            {canAssign && (
+              <>
+                {pilots.length > 0 && (
+                  <AssignPilotForm movementId={m.id} pilots={pilots} currentPilotId={m.assignedPilotId} />
+                )}
+                <AttachBookingForm movementId={m.id} bookings={bookings} />
+              </>
             )}
           </Card>
         ))}
