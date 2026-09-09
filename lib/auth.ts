@@ -95,6 +95,13 @@ export function isOps() {
   return true;
 }
 
+/** Display label for audit (paidBy). Never returns or stores the raw OPS_PIN. */
+export function opsIdentity(): string | null {
+  if (!isOps()) return null;
+  // Optional host override for multi-desk labeling; default is a stable session label.
+  return process.env.OPS_STAFF_LABEL?.trim() || "ops-desk";
+}
+
 export function opsPinOk(pin: string) {
   const expected = process.env.OPS_PIN || "local-ops";
   const a = Buffer.from(pin);

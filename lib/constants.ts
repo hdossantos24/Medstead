@@ -169,6 +169,11 @@ export const INVOICE_STATUS_LABEL: Record<string, string> = {
   paid: "Paid",
 };
 
+export const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  wire: "Wire transfer",
+  cash: "Cash",
+};
+
 export const FORBIDDEN_CARGO_TERMS = [
   "semaglutide",
   "tirzepatide",

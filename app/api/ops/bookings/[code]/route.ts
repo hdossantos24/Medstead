@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isOps } from "@/lib/auth";
+import { isOps, opsIdentity } from "@/lib/auth";
 import { BOOKING_STATUSES } from "@/lib/constants";
-import { issuePayLaterInvoice, markPaid, markPayLater } from "@/lib/payments";
+import {
+  MARK_PAID_ELIGIBLE_INVOICE,
+  buildMarkPaidAudit,
+  issuePayLaterInvoice,
+  markPayLater,
+  trackingNoteForPayment,
+  validateMarkPaidBody,
+} from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 
 export async function PATCH(req: NextRequest, { params }: { params: { code: string } }) {
@@ -10,7 +17,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { code: stri
   }
 
   const code = decodeURIComponent(params.code);
-  const booking = await prisma.booking.findUnique({ where: { bookingCode: code } });
+  const booking = await prisma.booking.findUnique({
+    where: { bookingCode: code },
+    include: { payments: { orderBy: { paidAt: "desc" }, take: 1 } },
+  });
   if (!booking) {
     return NextResponse.json({ error: "Booking not found" }, { status: 404 });
   }
@@ -20,6 +30,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { code: stri
     note?: string;
     action?: "issue_invoice" | "pay_later" | "mark_paid";
     amountUsd?: number;
+    paymentMethod?: string;
+    reference?: string;
   };
 
   if (body.status) {
@@ -80,28 +92,112 @@ export async function PATCH(req: NextRequest, { params }: { params: { code: stri
   }
 
   if (body.action === "mark_paid") {
-    const invoice = markPaid({
-      provider: "invoice_pay_later",
-      status: booking.invoiceStatus === "pay_later" ? "pay_later" : "issued",
-      reference: booking.invoiceRef || `INV-${booking.bookingCode}`,
-      amountUsd: booking.invoiceUsd || booking.estimateUsd,
-      checkoutUrl: null,
-      note: "",
+    // Idempotent: already paid — return current state, do not invent a second payment.
+    if (booking.invoiceStatus === "paid" || booking.paidAt) {
+      const latest = booking.payments[0] || null;
+      return NextResponse.json({
+        ok: true,
+        alreadyPaid: true,
+        payment: latest
+          ? {
+              paidAt: latest.paidAt,
+              paidBy: latest.paidBy,
+              paymentMethod: latest.paymentMethod,
+              amountUsd: latest.amountUsd,
+              reference: latest.reference,
+              note: latest.note,
+              priorInvoiceStatus: latest.priorInvoiceStatus,
+              bookingStatusAfter: latest.bookingStatusAfter,
+            }
+          : {
+              paidAt: booking.paidAt,
+              paidBy: booking.paidBy,
+              paymentMethod: booking.paymentMethod,
+              amountUsd: booking.invoiceUsd ?? booking.estimateUsd,
+              reference: booking.paymentReference,
+              note: booking.paymentNote,
+              priorInvoiceStatus: null,
+              bookingStatusAfter: "PAID",
+            },
+      });
+    }
+
+    if (!MARK_PAID_ELIGIBLE_INVOICE.has(booking.invoiceStatus)) {
+      return NextResponse.json(
+        { error: "Mark paid is only available when an invoice is issued or marked pay later" },
+        { status: 400 },
+      );
+    }
+
+    const validated = validateMarkPaidBody({
+      paymentMethod: body.paymentMethod,
+      amountUsd: body.amountUsd ?? booking.invoiceUsd ?? booking.estimateUsd,
+      reference: body.reference,
+      note: body.note,
     });
-    await prisma.booking.update({
-      where: { id: booking.id },
-      data: {
-        invoiceStatus: invoice.status,
-        invoiceRef: invoice.reference,
-        invoiceUsd: invoice.amountUsd,
-        status: booking.status === "INVOICE_ISSUED" || booking.status === "CONFIRMED" ? "PAID" : booking.status,
-      },
+    if (!validated.ok) {
+      return NextResponse.json({ error: validated.error }, { status: 400 });
+    }
+
+    const paidBy = opsIdentity() || "ops-desk";
+    const audit = buildMarkPaidAudit({
+      paymentMethod: validated.paymentMethod,
+      amountUsd: validated.amountUsd,
+      reference: validated.reference || undefined,
+      note: validated.note || undefined,
+      paidBy,
+      priorInvoiceStatus: booking.invoiceStatus,
     });
-    await prisma.trackingEvent.create({
-      data: {
-        bookingId: booking.id,
-        status: "PAID",
-        note: "Payment received offline. No card was charged in this app.",
+
+    await prisma.$transaction([
+      prisma.paymentRecord.create({
+        data: {
+          bookingId: booking.id,
+          paidAt: audit.paidAt,
+          paidBy: audit.paidBy,
+          paymentMethod: audit.paymentMethod,
+          amountUsd: audit.amountUsd,
+          reference: audit.reference ?? null,
+          note: audit.note ?? null,
+          priorInvoiceStatus: audit.priorInvoiceStatus,
+          bookingStatusAfter: audit.bookingStatusAfter,
+        },
+      }),
+      prisma.booking.update({
+        where: { id: booking.id },
+        data: {
+          invoiceStatus: audit.invoiceStatus,
+          invoiceUsd: audit.amountUsd,
+          invoiceRef: booking.invoiceRef || `INV-${booking.bookingCode}`,
+          status: "PAID",
+          paidAt: audit.paidAt,
+          paidBy: audit.paidBy,
+          paymentMethod: audit.paymentMethod,
+          paymentReference: audit.reference ?? null,
+          paymentNote: audit.note ?? null,
+        },
+      }),
+      prisma.trackingEvent.create({
+        data: {
+          bookingId: booking.id,
+          status: "PAID",
+          note: trackingNoteForPayment(audit.paymentMethod, audit.amountUsd, audit.reference ?? null),
+        },
+      }),
+    ]);
+
+    return NextResponse.json({
+      ok: true,
+      alreadyPaid: false,
+      payment: {
+        paidAt: audit.paidAt,
+        paidBy: audit.paidBy,
+        paymentMethod: audit.paymentMethod,
+        amountUsd: audit.amountUsd,
+        reference: audit.reference ?? null,
+        note: audit.note ?? null,
+        priorInvoiceStatus: audit.priorInvoiceStatus,
+        bookingStatusAfter: audit.bookingStatusAfter,
       },
     });
   }
