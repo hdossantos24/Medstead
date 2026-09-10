@@ -1,20 +1,76 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  CUSTOMER
+  ADMIN
+  STAFF
+  PILOT
+  CARGO
+}
+
+enum AssignmentKind {
+  NEXT_ACTION
+  TRACKING_UPDATE
+  INVOICE
+  RECEIVE_CARGO
+  FLIGHT_TRIP
+}
+
+enum AssignmentStatus {
+  OPEN
+  DONE
+}
+
+/// Shared schedule row for freight cargo now and passenger legs later.
+/// The future MTG Airways app writes here — this is not a public airline booker.
+enum MovementKind {
+  CARGO
+  PASSENGER
+}
+
+enum MovementStatus {
+  REQUESTED
+  SCHEDULED
+  DISPATCHED
+  COMPLETE
+  HOLD
+}
+
+/// Document kinds already used on the company OS / PRODUCT_SPEC. Do not invent extras.
+enum DocumentKind {
+  COMMERCIAL_INVOICE
+  PACKING_LIST
+  AIR_WAYBILL
+  CUSTOMS_DECLARATION
+  MANIFEST
+}
+
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String
-  name         String
-  phone        String?
-  createdAt    DateTime  @default(now())
-  bookings     Booking[]
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  passwordHash       String
+  name               String
+  phone              String?
+  role               UserRole  @default(CUSTOMER)
+  active             Boolean   @default(true)
+  /// Imported seats stay false until an admin sets a real password (never invent passwords).
+  mustResetPassword  Boolean   @default(false)
+  /// Bolt Flight Ops profiles.id when imported; idempotent upsert key alongside email.
+  boltProfileId      String?   @unique
+  createdAt          DateTime  @default(now())
+  bookings           Booking[]
+  assignedWork       WorkAssignment[] @relation("Assignee")
+  createdWork        WorkAssignment[] @relation("Assigner")
+  assignedTrips      Movement[]       @relation("MovementPilot")
+  passengers         Passenger[]      @relation("PassengerProfile")
 }
 
 model Booking {
@@ -54,10 +110,182 @@ model Booking {
   invoiceStatus    String   @default("none")
   invoiceRef       String?
   paymentProvider  String   @default("invoice_pay_later")
+  /// Denormalized latest mark-paid (also stored append-only on PaymentRecord)
+  paidAt           DateTime?
+  paidBy           String?
+  paymentMethod    String?
+  paymentReference String?
+  paymentNote      String?
   notes            String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   events           TrackingEvent[]
+  payments         PaymentRecord[]
+  assignments      WorkAssignment[]
+  documents        MovementDocument[]
+  movementId       String?
+  movement         Movement?          @relation(fields: [movementId], references: [id])
+}
+
+/// Append-only audit of ops (or later webhook) payment confirmations.
+/// Never store bank account numbers, card PANs, or raw OPS_PIN here.
+model PaymentRecord {
+  id                 String   @id @default(cuid())
+  bookingId          String
+  booking            Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  paidAt             DateTime @default(now())
+  paidBy             String
+  paymentMethod      String
+  amountUsd          Float
+  reference          String?
+  note               String?
+  priorInvoiceStatus String
+  bookingStatusAfter String
+  createdAt          DateTime @default(now())
+
+  @@index([bookingId])
+}
+
+/// Staff next-action / trip assignment. FLIGHT_TRIP rows point at Movement.
+model WorkAssignment {
+  id          String           @id @default(cuid())
+  title       String
+  note        String?
+  kind        AssignmentKind   @default(NEXT_ACTION)
+  status      AssignmentStatus @default(OPEN)
+  assigneeId  String
+  assignee    User             @relation("Assignee", fields: [assigneeId], references: [id])
+  assignerId  String?
+  assigner    User?            @relation("Assigner", fields: [assignerId], references: [id])
+  bookingId   String?
+  booking     Booking?         @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  movementId  String?
+  movement    Movement?        @relation(fields: [movementId], references: [id], onDelete: SetNull)
+  dueAt       DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([assigneeId, status])
+  @@index([bookingId])
+  @@index([movementId])
+}
+
+/// Shared cargo/passenger schedule. MedStead owns this table; the airline app calls the integration API.
+model Movement {
+  id               String         @id @default(cuid())
+  movementCode     String         @unique
+  kind             MovementKind
+  status           MovementStatus @default(REQUESTED)
+  originCode       String
+  destCode         String
+  scheduledAt      DateTime?
+  capacityWeightLb Float?
+  capacityPieces   Int?
+  capacitySeats    Int?
+  /// Internal operator label only — never public marketing copy.
+  operatorName     String         @default("MedStead Ops")
+  notes            String?
+  assignedPilotId  String?
+  assignedPilot    User?          @relation("MovementPilot", fields: [assignedPilotId], references: [id])
+  aircraftId       String?
+  aircraft         Aircraft?      @relation(fields: [aircraftId], references: [id], onDelete: SetNull)
+  /// Tail or airline ident used to query FlightAware AeroAPI (e.g. N127TX).
+  flightIdent      String?
+  /// FlightAware fa_flight_id when known from a prior sync.
+  faFlightId       String?
+  /// Normalized badge: SCHEDULED | EN_ROUTE | ON_TIME | DELAYED | CANCELED | ARRIVED | UNKNOWN | OFFLINE
+  faStatus         String?
+  faStatusText     String?
+  faDelaySeconds   Int?
+  lastSyncedAt     DateTime?
+  scheduledOut     DateTime?
+  actualOut        DateTime?
+  scheduledIn      DateTime?
+  actualIn         DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  bookings         Booking[]
+  documents        MovementDocument[]
+  assignments      WorkAssignment[]
+  passengers       Passenger[]
+  callLogs         CallLog[]
+
+  @@index([kind, status])
+  @@index([scheduledAt])
+  @@index([flightIdent])
+  @@index([aircraftId])
+  @@index([faStatus])
+}
+
+/// Company aircraft / tails for internal fleet desk (not a public airline catalog).
+model Aircraft {
+  id         String     @id @default(cuid())
+  tailNumber String     @unique
+  label      String?
+  typeName   String?
+  active     Boolean    @default(true)
+  notes      String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  movements  Movement[]
+}
+
+model MovementDocument {
+  id          String       @id @default(cuid())
+  kind        DocumentKind
+  reference   String
+  note        String?
+  movementId  String?
+  movement    Movement?    @relation(fields: [movementId], references: [id], onDelete: Cascade)
+  bookingId   String?
+  booking     Booking?     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+
+  @@index([movementId])
+  @@index([bookingId])
+}
+
+/// Flying customer / passenger row from Bolt Flight Ops (ops-passengers CSV).
+/// Optional movementId ties into the airline seam when a PASSENGER leg exists.
+/// Passport fields are internal ops PII — never expose on the public freight store.
+model Passenger {
+  id                     String    @id @default(cuid())
+  boltPassengerId        String?   @unique
+  boltFlightRequestId    String?
+  name                   String
+  email                  String?
+  phone                  String?
+  weightLbs              Float?
+  notes                  String?
+  address                String?
+  passportNumber         String?
+  passportExpirationDate DateTime?
+  nationality            String?
+  dateOfBirth            DateTime?
+  responseStatus         String?
+  profileUserId          String?
+  profileUser            User?     @relation("PassengerProfile", fields: [profileUserId], references: [id], onDelete: SetNull)
+  movementId             String?
+  movement               Movement? @relation(fields: [movementId], references: [id], onDelete: SetNull)
+  boltCreatedAt          DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  @@index([email])
+  @@index([boltFlightRequestId])
+  @@index([profileUserId])
+  @@index([movementId])
+}
+
+/// Simple per-role permission toggles. Keys are expandable (see lib/staff.ts).
+model StaffRule {
+  id      String   @id @default(cuid())
+  role    UserRole
+  key     String
+  allowed Boolean  @default(true)
+  note    String?
+
+  @@unique([role, key])
 }
 
 model TrackingEvent {
@@ -67,4 +295,43 @@ model TrackingEvent {
   status    String
   note      String
   createdAt DateTime @default(now())
+}
+
+enum CallType {
+  ORGAN_RESCUE
+  MEDICAL_CARGO
+  DOCTOR_CHARTER
+  OTHER_URGENT_MEDICAL
+}
+
+enum CallUrgency {
+  ROUTINE
+  URGENT
+  ORGAN_CLOCK
+}
+
+/// Phone desk intake — facility/caller only. Never patient name, DOB, MRN, or diagnosis.
+model CallLog {
+  id            String      @id @default(cuid())
+  receivedAt    DateTime    @default(now())
+  callerName    String
+  callerPhone   String
+  callbackPhone String?
+  callerOrg     String?
+  callType      CallType
+  origin        String?
+  destination   String
+  notes         String?
+  urgency       CallUrgency @default(URGENT)
+  source        String      @default("+1-954-228-4551")
+  /// Who should see the dispatch next-action (label, e.g. DEL).
+  routedTo      String      @default("DEL")
+  movementId    String?
+  movement      Movement?   @relation(fields: [movementId], references: [id], onDelete: SetNull)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([receivedAt])
+  @@index([callType])
+  @@index([movementId])
 }

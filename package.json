@@ -10,13 +10,24 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
-    "db:setup": "prisma db push && tsx prisma/seed.ts"
+    "db:seed-admin": "tsx scripts/seed-admin.ts",
+    "db:setup": "prisma db push && tsx prisma/seed.ts",
+    "test:staff": "tsx lib/staff.test.ts",
+    "cap:sync": "cap sync",
+    "cap:ios": "cap open ios",
+    "import:flight-ops": "tsx scripts/import-flight-ops.ts",
+    "cap:android": "cap open android",
+    "test:calls": "tsx lib/call-center.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/ios": "^8.5.1",
     "@prisma/client": "6.16.2",
     "bcryptjs": "^2.4.3",
     "next": "^14.2.18",
@@ -25,6 +36,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.17.6",
     "@types/react": "^18.3.12",

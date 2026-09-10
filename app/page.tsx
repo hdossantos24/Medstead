@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { InstallHint } from "@/components/install-hint";
 import { CopyAddress } from "@/components/copy-address";
 import { Icon } from "@/components/icons";
 import { Badge, Button, Card } from "@/components/ui";
@@ -16,6 +17,7 @@ export default function HomePage() {
 
   return (
     <div>
+      <InstallHint />
       <section className="bg-navy-950 text-white">
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-14 sm:px-6 md:py-20 lg:grid-cols-[1.15fr_0.85fr]">
           <div>
