@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { FaBadge } from "@/components/fa-badge";
 import { NextQueue } from "@/components/next-queue";
 import { OpsLogin } from "@/components/ops-desk";
 import { Badge, Card } from "@/components/ui";
 import { actorAllows, getOpsActor } from "@/lib/auth";
 import { loadDeskQueue } from "@/lib/desk";
+import { ensureFleetAircraft } from "@/lib/fleet";
+import { flightAwareConfigured } from "@/lib/flightaware";
 import { prisma } from "@/lib/prisma";
 import { ROLE_EYEBROW, homePathForRole, isStaffRole, type StaffRole } from "@/lib/staff";
 
@@ -18,8 +21,8 @@ export default async function OpsPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest-700">Internal</p>
         <h1 className="mt-3 text-3xl font-semibold text-navy-950">Ops desk</h1>
         <p className="mt-3 text-sm text-navy-800/70">
-          Update tracking, issue invoices, and mark wire/cash paid. This is not a customer page. Each
-          employee signs in with their own work email.
+          Freight orders and flight ops in one hive. Update tracking, issue invoices, mark wire/cash
+          paid, and run trips without leaving this app.
         </p>
         <div className="mt-6">
           <OpsLogin />
@@ -37,14 +40,27 @@ export default async function OpsPage() {
   }
 
   const items = await loadDeskQueue(actor);
-  const [openBookings, warehouse, openWork, movements] = await Promise.all([
+  const faConfigured = flightAwareConfigured();
+  const [openBookings, warehouse, openWork, movements, passengerCount, fleet] = await Promise.all([
     prisma.booking.count({ where: { status: { not: "DELIVERED" } } }),
     prisma.booking.count({ where: { status: { in: ["PAID", "RECEIVED"] } } }),
     prisma.workAssignment.count({ where: { status: "OPEN" } }),
-    prisma.movement.count({ where: { status: { in: ["REQUESTED", "SCHEDULED", "DISPATCHED"] } } }),
+    prisma.movement.findMany({
+      where: { status: { in: ["REQUESTED", "SCHEDULED", "DISPATCHED", "HOLD"] } },
+      include: {
+        aircraft: { select: { tailNumber: true } },
+        bookings: { select: { bookingCode: true } },
+        passengers: { select: { id: true } },
+      },
+      orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }],
+      take: 8,
+    }),
+    prisma.passenger.count(),
+    ensureFleetAircraft(),
   ]);
 
-  const role: StaffRole = actor.kind === "staff" && isStaffRole(actor.user.role) ? actor.user.role : "STAFF";
+  const role: StaffRole =
+    actor.kind === "staff" && isStaffRole(actor.user.role) ? actor.user.role : "STAFF";
   const eyebrow = actor.kind === "pin" ? "Break-glass PIN" : ROLE_EYEBROW[role];
   const canPeople = actor.kind === "staff" && (await actorAllows(actor, "manage_employees"));
 
@@ -53,8 +69,8 @@ export default async function OpsPage() {
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest-700">{eyebrow}</p>
       <h1 className="mt-3 text-3xl font-semibold text-navy-950">Do this next</h1>
       <p className="mt-2 text-sm text-navy-800/70">
-        One platform. Freight bookings and staff assignments. Simulated tracking is OK in v1. Invoice /
-        pay later + ops mark-paid (wire/cash). No card rail is live.
+        Single staff hive: freight next-actions and open trips together. FlightAware monitor{" "}
+        {faConfigured ? "is configured" : "is offline until FLIGHTAWARE_API_KEY is set in Vercel"}.
       </p>
 
       <div className="mt-8">
@@ -63,78 +79,110 @@ export default async function OpsPage() {
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <Link href="/ops/orders" className="flex min-h-[120px] flex-col justify-between rounded-3xl bg-navy-950 p-6 text-white">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Pick / pack</p>
+        <Link
+          href="/ops/orders"
+          className="flex min-h-[120px] flex-col justify-between rounded-3xl bg-navy-950 p-6 text-white"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Freight</p>
           <p className="text-3xl font-semibold">Orders</p>
-          <p className="text-sm text-white/70">{openBookings} open bookings</p>
+          <p className="text-sm text-white/70">{openBookings} open · {warehouse} warehouse/paid</p>
         </Link>
-        <Link href="/ops/orders" className="flex min-h-[120px] flex-col justify-between rounded-3xl bg-forest-600 p-6 text-white">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/80">Ship / track</p>
-          <p className="text-3xl font-semibold">Packages</p>
-          <p className="text-sm text-white/80">{warehouse} at warehouse or paid</p>
-        </Link>
-      </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <Card className="p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Assigned work</p>
-          <p className="mt-2 text-3xl font-semibold text-navy-950">{openWork} open</p>
-          <p className="mt-1 text-sm text-navy-800/60">
-            <Link href="/ops/assignments" className="font-semibold text-forest-700">
-              Next actions
-            </Link>
-          </p>
-        </Card>
-        <Card className="p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Shared schedule</p>
-          <p className="mt-2 text-3xl font-semibold text-navy-950">{movements} movements</p>
-          <p className="mt-1 text-sm text-navy-800/60">
-            Internal cargo + passenger board. Public airline door is later.
-          </p>
-        </Card>
-      </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <Link
           href="/ops/trips"
-          className="flex min-h-[108px] flex-col justify-between rounded-3xl border border-navy-900/10 bg-white p-6 shadow-sm"
+          className="flex min-h-[120px] flex-col justify-between rounded-3xl bg-forest-600 p-6 text-white"
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Flight ops</p>
-          <p className="text-2xl font-semibold text-navy-950">Trips</p>
-          <p className="text-sm text-navy-800/60">Internal trip board — not a public airline door.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/80">Flight ops</p>
+          <p className="text-3xl font-semibold">Trips</p>
+          <p className="text-sm text-white/80">{movements.length}+ open movements</p>
         </Link>
+      </div>
+
+      <Card className="mt-4 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">
+            Open trips · live status
+          </p>
+          <Badge tone={faConfigured ? "green" : "navy"}>
+            {faConfigured ? "FlightAware on" : "FA offline"}
+          </Badge>
+        </div>
+        {movements.length === 0 ? (
+          <p className="mt-3 text-sm text-navy-800/60">No open trips. Create one under Flight ops.</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {movements.map((m) => (
+              <li key={m.id} className="flex flex-wrap items-start justify-between gap-2 border-b border-navy-900/5 pb-3 last:border-0">
+                <div>
+                  <Link href="/ops/trips" className="font-semibold text-navy-950 hover:text-forest-700">
+                    {m.movementCode}
+                  </Link>
+                  <p className="text-sm text-navy-800/60">
+                    {m.originCode} → {m.destCode}
+                    {m.aircraft ? ` · ${m.aircraft.tailNumber}` : ""}
+                    {m.bookings.length ? ` · ${m.bookings.length} freight` : ""}
+                    {m.passengers.length ? ` · ${m.passengers.length} pax` : ""}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Badge tone="navy">{m.status}</Badge>
+                  <FaBadge status={m.faStatus} text={m.faStatusText} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <Card className="p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Assignments</p>
+          <p className="mt-2 text-3xl font-semibold text-navy-950">{openWork}</p>
+          <Link href="/ops/assignments" className="mt-1 text-sm font-semibold text-forest-700">
+            Next actions
+          </Link>
+        </Card>
+        <Card className="p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Passengers</p>
+          <p className="mt-2 text-3xl font-semibold text-navy-950">{passengerCount}</p>
+          <Link href="/ops/passengers" className="mt-1 text-sm font-semibold text-forest-700">
+            People desk
+          </Link>
+        </Card>
+        <Card className="p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Fleet</p>
+          <p className="mt-2 text-3xl font-semibold text-navy-950">{fleet.length}</p>
+          <Link href="/ops/fleet" className="mt-1 text-sm font-semibold text-forest-700">
+            Tails
+          </Link>
+        </Card>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {canPeople ? (
           <Link
             href="/ops/employees"
-            className="flex min-h-[108px] flex-col justify-between rounded-3xl border border-navy-900/10 bg-white p-6 shadow-sm"
+            className="flex min-h-[96px] flex-col justify-between rounded-3xl border border-navy-900/10 bg-white p-5 shadow-sm"
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Flight ops</p>
-            <p className="text-2xl font-semibold text-navy-950">Employees</p>
-            <p className="text-sm text-navy-800/60">Staff seats for trips and assignments.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">People</p>
+            <p className="text-xl font-semibold text-navy-950">Employees</p>
           </Link>
         ) : (
           <Link
             href="/ops/assignments"
-            className="flex min-h-[108px] flex-col justify-between rounded-3xl border border-navy-900/10 bg-white p-6 shadow-sm"
+            className="flex min-h-[96px] flex-col justify-between rounded-3xl border border-navy-900/10 bg-white p-5 shadow-sm"
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Flight ops</p>
-            <p className="text-2xl font-semibold text-navy-950">Assignments</p>
-            <p className="text-sm text-navy-800/60">Next actions tied to trips and freight.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Work</p>
+            <p className="text-xl font-semibold text-navy-950">Assignments</p>
           </Link>
         )}
+        <Link
+          href="/ops/passengers"
+          className="flex min-h-[96px] flex-col justify-between rounded-3xl border border-navy-900/10 bg-white p-5 shadow-sm"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Hive</p>
+          <p className="text-xl font-semibold text-navy-950">Passengers + trips</p>
+        </Link>
       </div>
-
-      {canPeople && (
-        <Card className="mt-4 p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Employees</p>
-          <p className="mt-2 text-sm text-navy-800/70">Create seats, set roles, and toggle rules.</p>
-          <p className="mt-3">
-            <Link href="/ops/employees" className="text-sm font-semibold text-forest-700 hover:underline">
-              Open people
-            </Link>
-          </p>
-        </Card>
-      )}
 
       {items.length > 1 && (
         <div className="mt-8">
@@ -149,8 +197,8 @@ export default async function OpsPage() {
         <Card className="mt-6 p-5">
           <Badge tone="amber">Break-glass PIN</Badge>
           <p className="mt-2 text-sm leading-6 text-navy-800/70">
-            PIN can update tracking and invoices. It cannot manage employees. Day-to-day staff should
-            use their own login.
+            PIN can update tracking and invoices. It cannot manage employees or the schedule. Day-to-day
+            staff should use their own login.
           </p>
         </Card>
       )}

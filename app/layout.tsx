@@ -18,6 +18,16 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   manifest: "/manifest.json",
+  applicationName: "MedStead",
+  themeColor: "#060F22",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "MedStead",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export const dynamic = "force-dynamic";

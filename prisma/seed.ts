@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { DEFAULT_RULES, PERMISSIONS, type StaffRole } from "../lib/staff";
+import { ensureFleetAircraft } from "../lib/fleet";
 
 const prisma = new PrismaClient();
 
@@ -47,6 +48,7 @@ async function maybeSeedDemoStaff() {
 
 async function main() {
   await ensureRules();
+  await ensureFleetAircraft();
   await maybeSeedDemoStaff();
 
   const passwordHash = await bcrypt.hash("storefront1234", 10);
