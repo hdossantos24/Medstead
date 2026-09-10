@@ -103,7 +103,7 @@ export default async function OpsPage() {
             Open trips · live status
           </p>
           <Badge tone={faConfigured ? "green" : "navy"}>
-            {faConfigured ? "FlightAware on" : "FA offline"}
+            {faConfigured ? "FlightAware on" : "FA not configured"}
           </Badge>
         </div>
         {movements.length === 0 ? (
@@ -125,7 +125,7 @@ export default async function OpsPage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Badge tone="navy">{m.status}</Badge>
-                  <FaBadge status={m.faStatus} text={m.faStatusText} />
+                  <FaBadge status={m.faStatus} text={m.faStatusText} configured={faConfigured} />
                 </div>
               </li>
             ))}

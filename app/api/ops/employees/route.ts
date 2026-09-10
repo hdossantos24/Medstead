@@ -11,7 +11,7 @@ export async function GET() {
   const users = await prisma.user.findMany({
     where: { role: { in: [...STAFF_ROLES] } },
     orderBy: [{ role: "asc" }, { name: "asc" }],
-    select: { id: true, name: true, email: true, phone: true, role: true, active: true, createdAt: true },
+    select: { id: true, name: true, email: true, phone: true, role: true, active: true, mustResetPassword: true, createdAt: true },
   });
   return NextResponse.json({ users });
 }
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       role: parsed.data.role,
       active: parsed.data.active ?? true,
     },
-    select: { id: true, name: true, email: true, phone: true, role: true, active: true },
+    select: { id: true, name: true, email: true, phone: true, role: true, active: true, mustResetPassword: true },
   });
   return NextResponse.json({ ok: true, user });
 }
