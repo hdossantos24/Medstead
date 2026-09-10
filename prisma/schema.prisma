@@ -208,6 +208,7 @@ model Movement {
   documents        MovementDocument[]
   assignments      WorkAssignment[]
   passengers       Passenger[]
+  callLogs         CallLog[]
 
   @@index([kind, status])
   @@index([scheduledAt])
@@ -294,4 +295,43 @@ model TrackingEvent {
   status    String
   note      String
   createdAt DateTime @default(now())
+}
+
+enum CallType {
+  ORGAN_RESCUE
+  MEDICAL_CARGO
+  DOCTOR_CHARTER
+  OTHER_URGENT_MEDICAL
+}
+
+enum CallUrgency {
+  ROUTINE
+  URGENT
+  ORGAN_CLOCK
+}
+
+/// Phone desk intake — facility/caller only. Never patient name, DOB, MRN, or diagnosis.
+model CallLog {
+  id            String      @id @default(cuid())
+  receivedAt    DateTime    @default(now())
+  callerName    String
+  callerPhone   String
+  callbackPhone String?
+  callerOrg     String?
+  callType      CallType
+  origin        String?
+  destination   String
+  notes         String?
+  urgency       CallUrgency @default(URGENT)
+  source        String      @default("+1-954-228-4551")
+  /// Who should see the dispatch next-action (label, e.g. DEL).
+  routedTo      String      @default("DEL")
+  movementId    String?
+  movement      Movement?   @relation(fields: [movementId], references: [id], onDelete: SetNull)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([receivedAt])
+  @@index([callType])
+  @@index([movementId])
 }

@@ -124,7 +124,13 @@ export function queueFromDesk(opts: {
             }`),
       actionLabel: isTrip ? "Acknowledge brief" : "Mark done",
       kind: isTrip ? "acknowledge_brief" : "open_assignment",
-      href: isTrip ? "/ops/trips" : a.booking ? `/ops/orders#${a.booking.bookingCode}` : "/ops/assignments",
+      href: isTrip
+        ? "/ops/trips"
+        : a.booking
+          ? `/ops/orders#${a.booking.bookingCode}`
+          : /dispatch|call|rescue|notify pilots/i.test(a.title)
+            ? "/ops/calls"
+            : "/ops/assignments",
       assignmentId: a.id,
       bookingCode: a.booking?.bookingCode,
       movementCode: trip?.movementCode,
