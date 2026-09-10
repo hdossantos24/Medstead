@@ -22,6 +22,10 @@ assert.strictEqual(mapImportedEmployeeRole("medstead_admin"), "ADMIN");
 assert.strictEqual(mapImportedEmployeeRole("ops"), "STAFF");
 assert.strictEqual(mapImportedEmployeeRole("warehouse"), "CARGO");
 assert.strictEqual(mapImportedEmployeeRole("pilot"), "PILOT");
+assert.strictEqual(mapImportedEmployeeRole("manager"), "STAFF");
+assert.strictEqual(mapImportedEmployeeRole("crew_requester"), "STAFF");
+assert.strictEqual(mapImportedEmployeeRole("requester"), "STAFF");
+assert.strictEqual(mapImportedEmployeeRole("doctor"), "STAFF");
 assert.strictEqual(mapImportedEmployeeRole("customer"), null);
 
 assert.strictEqual(defaultAllowed("ADMIN", "manage_employees"), true);

@@ -12,6 +12,7 @@ type Employee = {
   phone: string | null;
   role: StaffRole;
   active: boolean;
+  mustResetPassword?: boolean;
 };
 
 type Rule = { role: StaffRole; key: Permission; allowed: boolean };
@@ -116,7 +117,10 @@ export function EmployeeDesk({
                 <p className="font-semibold text-navy-950">{emp.name}</p>
                 <p className="text-sm text-navy-800/60">{emp.email}</p>
               </div>
-              <Badge tone={emp.active ? "green" : "amber"}>{emp.active ? ROLE_LABEL[emp.role] : "Disabled"}</Badge>
+              <div className="flex flex-wrap gap-2">
+                <Badge tone={emp.active ? "green" : "amber"}>{emp.active ? ROLE_LABEL[emp.role] : "Disabled"}</Badge>
+                {emp.mustResetPassword ? <Badge tone="amber">Invite · set password</Badge> : null}
+              </div>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <Field label="Role">
@@ -130,7 +134,7 @@ export function EmployeeDesk({
                   <option value="CARGO">Cargo</option>
                 </Select>
               </Field>
-              <div className="flex items-end gap-2">
+              <div className="flex flex-wrap items-end gap-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -138,6 +142,22 @@ export function EmployeeDesk({
                 >
                   {emp.active ? "Disable" : "Enable"}
                 </Button>
+                {emp.mustResetPassword ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const password = window.prompt("Set a temporary password (8+ characters). Share it out of band.");
+                      if (!password || password.length < 8) {
+                        setError("Password must be at least 8 characters.");
+                        return;
+                      }
+                      patchEmployee(emp.id, { name: emp.name, email: emp.email, role: emp.role, password, active: true });
+                    }}
+                  >
+                    Set password & enable
+                  </Button>
+                ) : null}
               </div>
             </div>
           </Card>

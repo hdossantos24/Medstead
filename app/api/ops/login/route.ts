@@ -13,6 +13,12 @@ export async function POST(req: NextRequest) {
     if (!user || !(await checkPassword(body.password, user.passwordHash))) {
       return NextResponse.json({ error: "Those credentials do not match." }, { status: 401 });
     }
+    if (user.mustResetPassword) {
+      return NextResponse.json(
+        { error: "Invite pending. Ask an admin to set your password in People." },
+        { status: 403 },
+      );
+    }
     if (!user.active || !isStaffRole(user.role)) {
       return NextResponse.json({ error: "Staff sign-in only. Customers use Account." }, { status: 403 });
     }

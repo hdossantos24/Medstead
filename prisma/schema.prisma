@@ -54,18 +54,23 @@ enum DocumentKind {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String
-  name         String
-  phone        String?
-  role         UserRole  @default(CUSTOMER)
-  active       Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  bookings        Booking[]
-  assignedWork    WorkAssignment[] @relation("Assignee")
-  createdWork     WorkAssignment[] @relation("Assigner")
-  assignedTrips   Movement[]       @relation("MovementPilot")
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  passwordHash       String
+  name               String
+  phone              String?
+  role               UserRole  @default(CUSTOMER)
+  active             Boolean   @default(true)
+  /// Imported seats stay false until an admin sets a real password (never invent passwords).
+  mustResetPassword  Boolean   @default(false)
+  /// Bolt Flight Ops profiles.id when imported; idempotent upsert key alongside email.
+  boltProfileId      String?   @unique
+  createdAt          DateTime  @default(now())
+  bookings           Booking[]
+  assignedWork       WorkAssignment[] @relation("Assignee")
+  createdWork        WorkAssignment[] @relation("Assigner")
+  assignedTrips      Movement[]       @relation("MovementPilot")
+  passengers         Passenger[]      @relation("PassengerProfile")
 }
 
 model Booking {
@@ -186,6 +191,7 @@ model Movement {
   bookings         Booking[]
   documents        MovementDocument[]
   assignments      WorkAssignment[]
+  passengers       Passenger[]
 
   @@index([kind, status])
   @@index([scheduledAt])
@@ -204,6 +210,38 @@ model MovementDocument {
 
   @@index([movementId])
   @@index([bookingId])
+}
+
+/// Flying customer / passenger row from Bolt Flight Ops (ops-passengers CSV).
+/// Optional movementId ties into the airline seam when a PASSENGER leg exists.
+/// Passport fields are internal ops PII — never expose on the public freight store.
+model Passenger {
+  id                     String    @id @default(cuid())
+  boltPassengerId        String?   @unique
+  boltFlightRequestId    String?
+  name                   String
+  email                  String?
+  phone                  String?
+  weightLbs              Float?
+  notes                  String?
+  address                String?
+  passportNumber         String?
+  passportExpirationDate DateTime?
+  nationality            String?
+  dateOfBirth            DateTime?
+  responseStatus         String?
+  profileUserId          String?
+  profileUser            User?     @relation("PassengerProfile", fields: [profileUserId], references: [id], onDelete: SetNull)
+  movementId             String?
+  movement               Movement? @relation(fields: [movementId], references: [id], onDelete: SetNull)
+  boltCreatedAt          DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  @@index([email])
+  @@index([boltFlightRequestId])
+  @@index([profileUserId])
+  @@index([movementId])
 }
 
 /// Simple per-role permission toggles. Keys are expandable (see lib/staff.ts).

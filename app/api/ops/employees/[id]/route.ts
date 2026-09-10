@@ -41,7 +41,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       phone: parsed.data.phone === undefined ? user.phone : parsed.data.phone || null,
       role: nextRole,
       active: nextActive,
-      ...(parsed.data.password ? { passwordHash: await hashPassword(parsed.data.password) } : {}),
+      ...(parsed.data.password
+        ? { passwordHash: await hashPassword(parsed.data.password), mustResetPassword: false }
+        : {}),
     },
     select: { id: true, name: true, email: true, phone: true, role: true, active: true },
   });

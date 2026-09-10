@@ -2,7 +2,7 @@
   "name": "medstead-storefront",
   "version": "1.0.0",
   "private": true,
-  "description": "MedStead customer freight storefront \u2014 book, confirm, invoice/pay-later, track.",
+  "description": "MedStead customer freight storefront — book, confirm, invoice/pay-later, track.",
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
@@ -16,7 +16,8 @@
     "db:setup": "prisma db push && tsx prisma/seed.ts",
     "test:staff": "tsx lib/staff.test.ts",
     "cap:sync": "cap sync",
-    "cap:ios": "cap open ios"
+    "cap:ios": "cap open ios",
+    "import:flight-ops": "tsx scripts/import-flight-ops.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
