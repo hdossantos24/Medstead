@@ -4,7 +4,7 @@
 
 Customer-facing freight booking for **MedStead** (MEDSTEAD LLC). A customer can book a shipment from a phone, get a confirmation and tracking ID, and pay later by invoice. Ops updates tracking in `/ops`.
 
-This is **not** the company OS (airline dispatch, CRM, accounting, WMS). Those live on other open PRs and are unfinished. Public brand is **MedStead**. Staging this week is freight book/track only — do not surface an airline or charter product. If the airline name is mentioned at all, it is **MTG Airways** (never STEADAIR, never “MTG Airlines”). No Part 135 operating claims. Background only, if needed: Part 91 + subcontracted 135.
+Public brand is **MedStead** freight (book / track / invoice). Staff operate the company desk — including **internal** MTG Airways cargo/passenger movements — at `/ops`. There is no public airline marketing or booking door here. The later public MTG Airways customer app will call this backend. Never STEADAIR. No Part 135 operating claims.
 
 ## Why this repo, not Bolt or Squarespace
 
@@ -22,7 +22,7 @@ This is **not** the company OS (airline dispatch, CRM, accounting, WMS). Those l
 - Services: Express Air 3–5 days, Standard Sea 5–7 days, Freeport & Nassau pickup, customs support, live tracking
 - Bahamas freight is a product, not the only product. Hard-to-reach medical transport uses the same form
 - Request + confirmation + invoice / pay later. **No card is charged.** A payment rail can be attached later — do not invent Stripe keys
-- Ops desk (`/ops`) can confirm, issue an invoice, mark pay-later or paid offline, and push tracking events
+- Ops desk (`/ops`) is employee login (email + password) with roles admin / staff / pilot / cargo. Shared `OPS_PIN` remains break-glass only. Staff can confirm, issue an invoice, mark pay-later or paid offline, push tracking, and assign next actions.
 - Contact: [Orders@medsteadgroup.com](mailto:Orders@medsteadgroup.com)
 - Official Transport lockup (globe / ship / plane / truck, green cross in the D)
 - Navy `#060F22`, green `#16A34A` / `#22C55E`, blue `#2563EB`, Inter
@@ -52,11 +52,21 @@ Open [http://localhost:3000](http://localhost:3000).
 | `/track` and `/track/[code]` | Tracking |
 | `/account` | Signup / login / my bookings |
 | `/support` | Orders desk |
-| `/ops` | Internal tracking + invoice (PIN from `.env`) |
+| `/ops` | Staff desk — email+password (PIN is break-glass) |
 
 Demo customer (README only — not shown on public pages): `customer@medstead.demo` / `storefront1234`  
 Demo tracking ID: `MS-20260820-FLL-NAS-0001`  
-Local ops PIN: `local-ops` (change `OPS_PIN` before any public deploy)
+Local ops PIN: `local-ops` (break-glass only; change `OPS_PIN` before any public deploy)
+
+### First admin + staff
+
+```bash
+ADMIN_EMAIL=hdossantos@medsteadgroup.com ADMIN_PASSWORD='choose-a-long-password' npm run db:seed-admin
+```
+
+That creates (or promotes) Hairson as `ADMIN`. Then sign in at `/ops`. Admin → People to create staff / pilot / cargo seats and toggle rules. Optional local demo seats: `SEED_DEMO_STAFF=1 DEMO_STAFF_PASSWORD='…' npm run db:seed`.
+
+Internal trip board is `/ops/trips` (admin / cargo / pilot). The **public** MTG Airways customer app is later and will call `/api/integrations/airline/*` (see `docs/AIRLINE_SEAM.md`). Part 135 is not live.
 
 Production build:
 
@@ -96,7 +106,7 @@ Next.js 14 App Router, TypeScript, Tailwind, Prisma + PostgreSQL, signed httpOnl
 
 Do **not** attach `medsteadtransport.com`, `www`, or `go`. Live freight DNS stays on Bolt.
 
-This app must be a **full Next.js** deploy (Node serverless), not a static export. Book and track write/read Postgres via `/api/bookings` and `/track/[code]`. This week’s staging is that freight desk only — no airline/charter product, no STEADAIR, no Part 135 operating claims.
+This app must be a **full Next.js** deploy (Node serverless), not a static export. Book and track write/read Postgres via `/api/bookings` and `/track/[code]`. Public staging is freight book/track. Internal airline ops stay behind `/ops`. No STEADAIR, no Part 135 operating claims.
 
 On the Vercel project (Hobby/free is fine):
 
@@ -121,4 +131,4 @@ Demo track code after seed: `MS-20260820-FLL-NAS-0001`. Ops PIN: `local-ops`.
 - Brand spelling: **MedStead** (never MeadStead)
 - MedStead is not a licensed customs broker
 - Warehouse: WareSpace – MedStead, 700 NW 57th Ct, Unit C15, Fort Lauderdale, FL 33309
-- Airline name if mentioned at all: **MTG Airways** (never STEADAIR). Not a live airline/charter product on this storefront. No Part 135 operating claims.
+- Airline name if mentioned at all: **MTG Airways** (never STEADAIR). Public storefront is freight only. Internal trip board is `/ops`. No Part 135 operating claims.

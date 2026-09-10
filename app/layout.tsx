@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
-import { MobileNav } from "@/components/mobile-nav";
+import { SiteChrome } from "@/components/site-chrome";
 import { currentUser } from "@/lib/auth";
 import "./globals.css";
 
@@ -29,10 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body className={`${inter.variable} font-sans`}>
-        <Header signedIn={Boolean(user)} />
-        <main className="pb-16 lg:pb-0">{children}</main>
-        <Footer />
-        <MobileNav />
+        <SiteChrome signedIn={Boolean(user && user.role === "CUSTOMER")}>{children}</SiteChrome>
       </body>
     </html>
   );

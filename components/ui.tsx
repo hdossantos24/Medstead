@@ -81,12 +81,13 @@ export function Badge({
   tone = "green",
 }: {
   children: ReactNode;
-  tone?: "green" | "blue" | "navy";
+  tone?: "green" | "blue" | "navy" | "amber";
 }) {
   const cls = {
     green: "bg-forest-100 text-forest-700",
     blue: "bg-blue-50 text-brand-blue",
     navy: "bg-navy-950/8 text-navy-800",
+    amber: "bg-amber-50 text-amber-800",
   }[tone];
   return (
     <span className={cn("inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide", cls)}>

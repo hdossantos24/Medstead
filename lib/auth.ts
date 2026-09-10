@@ -1,11 +1,24 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
+import {
+  PIN_PERMISSIONS,
+  homePathForRole,
+  isStaffRole,
+  ruleAllowed,
+  type Permission,
+  type StaffRole,
+} from "./staff";
 
 const SESSION_COOKIE = "medstead_session";
 const OPS_COOKIE = "medstead_ops";
 const MAX_AGE = 60 * 60 * 24 * 30;
+
+export type OpsActor =
+  | { kind: "staff"; user: NonNullable<Awaited<ReturnType<typeof currentUser>>> }
+  | { kind: "pin"; user: null };
 
 function secret() {
   return process.env.SESSION_SECRET || "dev-only-session-secret-change-me";
@@ -101,4 +114,66 @@ export function opsPinOk(pin: string) {
   const b = Buffer.from(expected);
   if (a.length !== b.length) return false;
   return timingSafeEqual(a, b);
+}
+
+export async function currentStaff() {
+  const user = await currentUser();
+  if (!user || !user.active || !isStaffRole(user.role)) return null;
+  return user;
+}
+
+export async function getOpsActor(): Promise<OpsActor | null> {
+  const staff = await currentStaff();
+  if (staff) return { kind: "staff", user: staff };
+  if (isOps()) return { kind: "pin", user: null };
+  return null;
+}
+
+export async function loadPermissionSet(role: StaffRole) {
+  const stored = await prisma.staffRule.findMany({ where: { role } });
+  return (key: Permission) => ruleAllowed(role, key, stored);
+}
+
+export async function actorAllows(actor: OpsActor, key: Permission) {
+  if (actor.kind === "pin") return PIN_PERMISSIONS.includes(key);
+  return (await loadPermissionSet(actor.user.role as StaffRole))(key);
+}
+
+export async function requireOpsApi(key?: Permission) {
+  const actor = await getOpsActor();
+  if (!actor) return { error: "Ops sign-in required" as const, status: 401 as const, actor: null };
+  if (key && !(await actorAllows(actor, key))) {
+    return { error: "That seat cannot do this." as const, status: 403 as const, actor };
+  }
+  return { actor, error: null, status: 200 as const };
+}
+
+export async function requireStaffPage(roles?: StaffRole[]) {
+  const actor = await getOpsActor();
+  if (!actor) redirect("/ops");
+  if (actor.kind === "pin") {
+    if (roles && !roles.includes("STAFF")) redirect("/ops");
+    return actor;
+  }
+  if (roles && !roles.includes(actor.user.role as StaffRole)) {
+    redirect(homePathForRole(actor.user.role));
+  }
+  return actor;
+}
+
+export async function ensureDefaultRules() {
+  const { DEFAULT_RULES, PERMISSIONS } = await import("./staff");
+  for (const role of Object.keys(DEFAULT_RULES) as StaffRole[]) {
+    for (const key of PERMISSIONS) {
+      await prisma.staffRule.upsert({
+        where: { role_key: { role, key } },
+        update: {},
+        create: {
+          role,
+          key,
+          allowed: DEFAULT_RULES[role].includes(key),
+        },
+      });
+    }
+  }
 }

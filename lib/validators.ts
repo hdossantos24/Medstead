@@ -62,3 +62,42 @@ export const loginInput = z.object({
   email: z.string().email(),
   password: z.string().min(1),
 });
+
+export const staffLoginInput = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+
+export const employeeInput = z.object({
+  name: z.string().min(2).max(80),
+  email: z.string().email(),
+  phone: z.string().max(40).optional().or(z.literal("")),
+  password: z.string().min(8).max(80).optional().or(z.literal("")),
+  role: z.enum(["ADMIN", "STAFF", "PILOT", "CARGO"]),
+  active: z.boolean().optional(),
+});
+
+export const assignmentInput = z.object({
+  title: z.string().min(2).max(160),
+  note: z.string().max(500).optional().or(z.literal("")),
+  kind: z.enum(["NEXT_ACTION", "TRACKING_UPDATE", "INVOICE", "RECEIVE_CARGO", "FLIGHT_TRIP"]),
+  assigneeId: z.string().min(1),
+  bookingCode: z.string().max(80).optional().or(z.literal("")),
+  movementCode: z.string().max(80).optional().or(z.literal("")),
+  dueAt: z.string().optional().or(z.literal("")),
+});
+
+export const staffRuleInput = z.object({
+  role: z.enum(["ADMIN", "STAFF", "PILOT", "CARGO"]),
+  key: z.enum([
+    "manage_employees",
+    "assign_work",
+    "update_tracking",
+    "issue_invoice",
+    "view_all_bookings",
+    "view_cargo_queue",
+    "view_trips",
+    "manage_schedule",
+  ]),
+  allowed: z.boolean(),
+});

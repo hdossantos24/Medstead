@@ -8,14 +8,64 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  CUSTOMER
+  ADMIN
+  STAFF
+  PILOT
+  CARGO
+}
+
+enum AssignmentKind {
+  NEXT_ACTION
+  TRACKING_UPDATE
+  INVOICE
+  RECEIVE_CARGO
+  FLIGHT_TRIP
+}
+
+enum AssignmentStatus {
+  OPEN
+  DONE
+}
+
+/// Shared schedule row for freight cargo now and passenger legs later.
+/// The future MTG Airways app writes here — this is not a public airline booker.
+enum MovementKind {
+  CARGO
+  PASSENGER
+}
+
+enum MovementStatus {
+  REQUESTED
+  SCHEDULED
+  DISPATCHED
+  COMPLETE
+  HOLD
+}
+
+/// Document kinds already used on the company OS / PRODUCT_SPEC. Do not invent extras.
+enum DocumentKind {
+  COMMERCIAL_INVOICE
+  PACKING_LIST
+  AIR_WAYBILL
+  CUSTOMS_DECLARATION
+  MANIFEST
+}
+
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
   passwordHash String
   name         String
   phone        String?
+  role         UserRole  @default(CUSTOMER)
+  active       Boolean   @default(true)
   createdAt    DateTime  @default(now())
-  bookings     Booking[]
+  bookings        Booking[]
+  assignedWork    WorkAssignment[] @relation("Assignee")
+  createdWork     WorkAssignment[] @relation("Assigner")
+  assignedTrips   Movement[]       @relation("MovementPilot")
 }
 
 model Booking {
@@ -59,6 +109,86 @@ model Booking {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   events           TrackingEvent[]
+  assignments      WorkAssignment[]
+  documents        MovementDocument[]
+  movementId       String?
+  movement         Movement?          @relation(fields: [movementId], references: [id])
+}
+
+/// Staff next-action / trip assignment. FLIGHT_TRIP rows point at Movement.
+model WorkAssignment {
+  id          String           @id @default(cuid())
+  title       String
+  note        String?
+  kind        AssignmentKind   @default(NEXT_ACTION)
+  status      AssignmentStatus @default(OPEN)
+  assigneeId  String
+  assignee    User             @relation("Assignee", fields: [assigneeId], references: [id])
+  assignerId  String?
+  assigner    User?            @relation("Assigner", fields: [assignerId], references: [id])
+  bookingId   String?
+  booking     Booking?         @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  movementId  String?
+  movement    Movement?        @relation(fields: [movementId], references: [id], onDelete: SetNull)
+  dueAt       DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([assigneeId, status])
+  @@index([bookingId])
+  @@index([movementId])
+}
+
+/// Shared cargo/passenger schedule. MedStead owns this table; the airline app calls the integration API.
+model Movement {
+  id               String         @id @default(cuid())
+  movementCode     String         @unique
+  kind             MovementKind
+  status           MovementStatus @default(REQUESTED)
+  originCode       String
+  destCode         String
+  scheduledAt      DateTime?
+  capacityWeightLb Float?
+  capacityPieces   Int?
+  capacitySeats    Int?
+  operatorName     String         @default("MTG Airways")
+  notes            String?
+  assignedPilotId  String?
+  assignedPilot    User?          @relation("MovementPilot", fields: [assignedPilotId], references: [id])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  bookings         Booking[]
+  documents        MovementDocument[]
+  assignments      WorkAssignment[]
+
+  @@index([kind, status])
+  @@index([scheduledAt])
+}
+
+model MovementDocument {
+  id          String       @id @default(cuid())
+  kind        DocumentKind
+  reference   String
+  note        String?
+  movementId  String?
+  movement    Movement?    @relation(fields: [movementId], references: [id], onDelete: Cascade)
+  bookingId   String?
+  booking     Booking?     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+
+  @@index([movementId])
+  @@index([bookingId])
+}
+
+/// Simple per-role permission toggles. Keys are expandable (see lib/staff.ts).
+model StaffRule {
+  id      String   @id @default(cuid())
+  role    UserRole
+  key     String
+  allowed Boolean  @default(true)
+  note    String?
+
+  @@unique([role, key])
 }
 
 model TrackingEvent {
