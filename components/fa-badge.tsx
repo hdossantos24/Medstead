@@ -23,7 +23,7 @@ export function FaBadge({
   configured?: boolean;
 }) {
   if (configured === false) {
-    return <Badge tone="navy">FA not configured</Badge>;
+    return <Badge tone="navy">FlightAware offline</Badge>;
   }
   if (!status) return <Badge tone="navy">No monitor</Badge>;
   const label = FA_STATUS_LABEL[status as FaStatus] || status;

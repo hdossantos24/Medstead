@@ -71,11 +71,23 @@ export default async function OpsPage() {
       <h1 className="mt-3 text-3xl font-semibold text-navy-950">Do this next</h1>
       <p className="mt-2 text-sm text-navy-800/70">
         Single staff hive: freight next-actions and open trips together. FlightAware monitor{" "}
-        {faConfigured ? "is configured" : "is offline until FLIGHTAWARE_API_KEY is set in Vercel"}.
+        {faConfigured ? "is configured" : "is offline (key not set in Vercel — OK while FA is on hold)"}.
       </p>
 
       <div className="mt-8">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Next job</p>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">
+            Next job · {items.length} open
+          </p>
+          <div className="flex flex-wrap gap-3 text-sm font-semibold text-forest-700">
+            <Link href="/ops/assignments" className="hover:underline">
+              Assignments
+            </Link>
+            <Link href="/ops/calls" className="hover:underline">
+              Calls
+            </Link>
+          </div>
+        </div>
         <NextQueue items={items.slice(0, 1)} hero />
       </div>
 
@@ -104,7 +116,7 @@ export default async function OpsPage() {
             Open trips · live status
           </p>
           <Badge tone={faConfigured ? "green" : "navy"}>
-            {faConfigured ? "FlightAware on" : "FA not configured"}
+            {faConfigured ? "FlightAware on" : "FlightAware offline"}
           </Badge>
         </div>
         {movements.length === 0 ? (
