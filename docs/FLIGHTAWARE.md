@@ -15,7 +15,7 @@ After the hold clears:
    - Optional: `FLIGHTAWARE_WEBHOOK_SECRET` (same role as cron secret for external callers)
 3. Redeploy Production so the new env vars load.
 4. Confirm `/ops` and `/ops/trips` show **FlightAware on** (not “FA not configured”).
-5. Optional: click **Sync all FA** on `/ops/trips`, or wait for the ~15m cron.
+5. Optional: click **Sync all FA** on `/ops/trips`, or wait for the scheduled cron (daily on Hobby; ~15m on Pro+).
 
 ## Env (Vercel)
 
@@ -29,11 +29,13 @@ If `FLIGHTAWARE_API_KEY` is missing, ops shows offline / not-configured badges. 
 
 ## Cron
 
-`vercel.json` schedules `GET /api/ops/flightaware/sync` every **15 minutes** (`*/15 * * * *`). Requires a Vercel plan that allows sub-daily crons (Pro+).
+`vercel.json` schedules `GET /api/ops/flightaware/sync` once daily at **16:00 UTC** (`0 16 * * *`) so **Hobby** Production deploys succeed (Hobby rejects sub-daily crons such as `*/15`).
 
+- **Hobby:** daily cron only (`0 16 * * *`).
+- **Pro+:** may use `*/15 * * * *` (every 15 minutes) if desired.
+- Manual sync remains available regardless of plan: `POST /api/ops/flightaware/sync` from a staff session with `manage_schedule`, or **Sync all FA** on `/ops/trips`.
 - Prefer `Authorization: Bearer <CRON_SECRET>` (auto when `CRON_SECRET` is set).
 - Route also accepts `x-vercel-cron` and `x-cron-secret`.
-- Manual sync: `POST /api/ops/flightaware/sync` from a staff session with `manage_schedule`.
 
 ## Behavior
 
