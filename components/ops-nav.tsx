@@ -9,6 +9,7 @@ const ADMIN_TABS: Tab[] = [
   { href: "/ops", label: "Home", match: (p) => p === "/ops" },
   { href: "/ops/orders", label: "Orders", match: (p, lane) => p.startsWith("/ops/orders") && lane !== "cargo" },
   { href: "/ops/trips", label: "Flight ops", match: (p) => p.startsWith("/ops/trips") },
+  { href: "/ops/calls", label: "Calls", match: (p) => p.startsWith("/ops/calls") },
   { href: "/ops/employees", label: "People", match: (p) => p.startsWith("/ops/employees") },
   { href: "/ops/passengers", label: "Passengers", match: (p) => p.startsWith("/ops/passengers") },
   { href: "/ops/fleet", label: "Fleet", match: (p) => p.startsWith("/ops/fleet") },
@@ -19,6 +20,7 @@ const STAFF_TABS: Tab[] = [
   { href: "/ops", label: "Home", match: (p) => p === "/ops" },
   { href: "/ops/orders", label: "Orders", match: (p) => p.startsWith("/ops/orders") },
   { href: "/ops/trips", label: "Flight ops", match: (p) => p.startsWith("/ops/trips") },
+  { href: "/ops/calls", label: "Calls", match: (p) => p.startsWith("/ops/calls") },
   { href: "/ops/passengers", label: "Passengers", match: (p) => p.startsWith("/ops/passengers") },
   { href: "/ops/assignments", label: "Assignments", match: (p) => p.startsWith("/ops/assignments") },
 ];
@@ -27,12 +29,14 @@ const CARGO_TABS: Tab[] = [
   { href: "/ops", label: "Home", match: (p) => p === "/ops" },
   { href: "/ops/orders?lane=cargo", label: "Orders", match: (p, lane) => p.startsWith("/ops/orders") && lane === "cargo" },
   { href: "/ops/trips", label: "Flight ops", match: (p) => p.startsWith("/ops/trips") },
+  { href: "/ops/calls", label: "Calls", match: (p) => p.startsWith("/ops/calls") },
   { href: "/ops/fleet", label: "Fleet", match: (p) => p.startsWith("/ops/fleet") },
   { href: "/ops/assignments", label: "Assignments", match: (p) => p.startsWith("/ops/assignments") },
 ];
 
 const PILOT_TABS: Tab[] = [
   { href: "/ops/assignments", label: "Assignments", match: (p) => p.startsWith("/ops/assignments") },
+  { href: "/ops/calls", label: "Calls", match: (p) => p.startsWith("/ops/calls") },
   { href: "/ops/trips", label: "Flight ops", match: (p) => p.startsWith("/ops/trips") || p === "/ops" },
   { href: "/ops/passengers", label: "Passengers", match: (p) => p.startsWith("/ops/passengers") },
   { href: "/ops/fleet", label: "Fleet", match: (p) => p.startsWith("/ops/fleet") },

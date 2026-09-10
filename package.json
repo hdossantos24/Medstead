@@ -18,7 +18,8 @@
     "cap:sync": "cap sync",
     "cap:ios": "cap open ios",
     "import:flight-ops": "tsx scripts/import-flight-ops.ts",
-    "cap:android": "cap open android"
+    "cap:android": "cap open android",
+    "test:calls": "tsx lib/call-center.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

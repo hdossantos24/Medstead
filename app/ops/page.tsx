@@ -41,7 +41,7 @@ export default async function OpsPage() {
 
   const items = await loadDeskQueue(actor);
   const faConfigured = flightAwareConfigured();
-  const [openBookings, warehouse, openWork, movements, passengerCount, fleet] = await Promise.all([
+  const [openBookings, warehouse, openWork, movements, passengerCount, fleet, callCount] = await Promise.all([
     prisma.booking.count({ where: { status: { not: "DELIVERED" } } }),
     prisma.booking.count({ where: { status: { in: ["PAID", "RECEIVED"] } } }),
     prisma.workAssignment.count({ where: { status: "OPEN" } }),
@@ -57,6 +57,7 @@ export default async function OpsPage() {
     }),
     prisma.passenger.count(),
     ensureFleetAircraft(),
+    prisma.callLog.count(),
   ]);
 
   const role: StaffRole =
@@ -133,12 +134,19 @@ export default async function OpsPage() {
         )}
       </Card>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Assignments</p>
           <p className="mt-2 text-3xl font-semibold text-navy-950">{openWork}</p>
           <Link href="/ops/assignments" className="mt-1 text-sm font-semibold text-forest-700">
             Next actions
+          </Link>
+        </Card>
+        <Card className="p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Call Log</p>
+          <p className="mt-2 text-3xl font-semibold text-navy-950">{callCount}</p>
+          <Link href="/ops/calls" className="mt-1 text-sm font-semibold text-forest-700">
+            Phone intake
           </Link>
         </Card>
         <Card className="p-5">
