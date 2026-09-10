@@ -14,6 +14,7 @@ Part 135 is **not live**. Internal `operatorName` is **MTG Airways** (never STEA
 | `Booking` | Freight / transport bookings (`MS-…` codes) |
 | `WorkAssignment` | Next actions tied to a booking and/or a movement |
 | `Movement` | Shared cargo + passenger schedule / capacity |
+| `Passenger` | Flying customers from Bolt Flight Ops import (optional `movementId`) |
 | `MovementDocument` | Commercial Invoice, Packing List, Air Waybill, Customs Declaration, Manifest |
 | `/ops` | Staff desk (email+password). `OPS_PIN` is break-glass only |
 | `/account` | Freight customers only |
@@ -32,6 +33,8 @@ Auth: `Authorization: Bearer $AIRLINE_APP_TOKEN` (or `x-airline-token`). Admin/s
 `POST` movement body: `kind`, `originCode`, `destCode`, optional `movementCode`, `status`, `scheduledAt`, `capacityWeightLb`, `capacityPieces`, `capacitySeats`, `assignedPilotId`, `bookingCodes`, `notes`.
 
 Passenger legs use `kind: "PASSENGER"` and `capacitySeats`. Cargo legs use `kind: "CARGO"` and weight/pieces. Codes: cargo `MS-YYYYMMDD-ORIGIN-DEST-####`, passenger `MTG-…`.
+
+Staff Flight Ops home: /ops/trips and /ops/employees (nav Flight ops). See docs/FLIGHT_OPS_IMPORT.md.
 
 ## Do not do in the airline app
 

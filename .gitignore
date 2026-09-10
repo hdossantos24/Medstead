@@ -11,3 +11,8 @@ prisma/dev.db-journal
 prisma/*.db
 prisma/*.db-journal
 tsconfig.tsbuildinfo
+import-data/**
+!import-data/
+!import-data/.gitkeep
+!import-data/flight-ops/
+!import-data/flight-ops/.gitkeep

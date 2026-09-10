@@ -8,7 +8,7 @@ type Tab = { href: string; label: string; match: (path: string, lane: string | n
 const ADMIN_TABS: Tab[] = [
   { href: "/ops", label: "Home", match: (p) => p === "/ops" },
   { href: "/ops/orders", label: "Orders", match: (p, lane) => p.startsWith("/ops/orders") && lane !== "cargo" },
-  { href: "/ops/trips", label: "Board", match: (p) => p.startsWith("/ops/trips") },
+  { href: "/ops/trips", label: "Flight ops", match: (p) => p.startsWith("/ops/trips") },
   { href: "/ops/employees", label: "People", match: (p) => p.startsWith("/ops/employees") },
 ];
 
@@ -21,12 +21,12 @@ const STAFF_TABS: Tab[] = [
 const CARGO_TABS: Tab[] = [
   { href: "/ops", label: "Home", match: (p) => p === "/ops" },
   { href: "/ops/orders?lane=cargo", label: "Warehouse", match: (p, lane) => p.startsWith("/ops/orders") && lane === "cargo" },
-  { href: "/ops/trips", label: "Board", match: (p) => p.startsWith("/ops/trips") },
+  { href: "/ops/trips", label: "Flight ops", match: (p) => p.startsWith("/ops/trips") },
 ];
 
 const PILOT_TABS: Tab[] = [
   { href: "/ops/assignments", label: "Next", match: (p) => p.startsWith("/ops/assignments") || p === "/ops" },
-  { href: "/ops/trips", label: "Board", match: (p) => p.startsWith("/ops/trips") },
+  { href: "/ops/trips", label: "Flight ops", match: (p) => p.startsWith("/ops/trips") },
 ];
 
 const PIN_TABS: Tab[] = [

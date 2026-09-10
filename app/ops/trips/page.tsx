@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import type { MovementStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Trip assignments" };
+export const metadata = { title: "Flight ops · trips" };
 
 export default async function TripsPage() {
   const actor = await requireStaffPage(["ADMIN", "PILOT", "CARGO"]);
@@ -48,12 +48,12 @@ export default async function TripsPage() {
 
   const briefs = items.filter((i) => i.kind === "acknowledge_brief" || i.id === "pilot-clear");
   const eyebrow =
-    role === "CARGO" ? "Cargo · warehouse movements" : role === "ADMIN" ? "Admin · internal board" : "Pilot · trip assignments";
+    role === "CARGO" ? "Flight ops · cargo" : role === "ADMIN" ? "Flight ops · admin" : "Flight ops · pilot";
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest-700">{eyebrow}</p>
-      <h1 className="mt-3 text-3xl font-semibold text-navy-950">Trip board</h1>
+      <h1 className="mt-3 text-3xl font-semibold text-navy-950">Flight ops · trips</h1>
       <p className="mt-2 text-sm text-navy-800/70">
         Internal cargo and passenger movements. Staff operate this board now. There is no public
         airline door on this site and Part 135 is not live. A later MTG Airways customer app will

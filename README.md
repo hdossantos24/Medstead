@@ -66,7 +66,7 @@ ADMIN_EMAIL=hdossantos@medsteadgroup.com ADMIN_PASSWORD='choose-a-long-password'
 
 That creates (or promotes) Hairson as `ADMIN`. Then sign in at `/ops`. Admin → People to create staff / pilot / cargo seats and toggle rules. Optional local demo seats: `SEED_DEMO_STAFF=1 DEMO_STAFF_PASSWORD='…' npm run db:seed`.
 
-Internal trip board is `/ops/trips` (admin / cargo / pilot). The **public** MTG Airways customer app is later and will call `/api/integrations/airline/*` (see `docs/AIRLINE_SEAM.md`). Part 135 is not live.
+Internal trip board is `/ops/trips` (admin / cargo / pilot). Nav label Flight ops. See docs/FLIGHT_OPS_IMPORT.md for Bolt CSV import. The **public** MTG Airways customer app is later and will call `/api/integrations/airline/*` (see `docs/AIRLINE_SEAM.md`). Part 135 is not live.
 
 Production build:
 

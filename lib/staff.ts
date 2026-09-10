@@ -75,17 +75,48 @@ export function homePathForRole(role?: string | null) {
   return "/account";
 }
 
+/**
+ * Bolt Flight Ops `profiles.role` → MedStead StaffRole.
+ * Documented in docs/FLIGHT_OPS_IMPORT.md.
+ *
+ *   admin / superadmin / owner     → ADMIN
+ *   pilot                          → PILOT
+ *   cargo / warehouse / cargo-ish   → CARGO
+ *   manager / crew_requester /
+ *   requester / doctor / staff /
+ *   employee / ops                 → STAFF
+ */
 export function mapImportedEmployeeRole(raw?: string | null): StaffRole | null {
-  const v = (raw ?? "").toLowerCase().trim();
+  const v = (raw ?? "").toLowerCase().trim().replace(/[\s-]+/g, "_");
   if (!v) return null;
   if (["admin", "superadmin", "super_admin", "medstead_admin", "owner"].includes(v)) return "ADMIN";
-  if (v === "pilot") return "PILOT";
-  if (["cargo", "warehouse"].includes(v)) return "CARGO";
-  if (["staff", "employee", "ops"].includes(v)) return "STAFF";
+  if (v === "pilot" || v.endsWith("_pilot")) return "PILOT";
+  if (["cargo", "warehouse", "cargo_handler", "cargo_ops"].includes(v) || v.includes("cargo") || v.includes("warehouse")) {
+    return "CARGO";
+  }
+  if (
+    [
+      "staff",
+      "employee",
+      "ops",
+      "manager",
+      "crew_requester",
+      "requester",
+      "doctor",
+      "crew",
+      "finance",
+    ].includes(v) ||
+    v.includes("staff") ||
+    v.includes("ops") ||
+    v.includes("request") ||
+    v.includes("manager") ||
+    v.includes("doctor") ||
+    v.includes("crew")
+  ) {
+    return "STAFF";
+  }
   if (v.includes("admin")) return "ADMIN";
   if (v.includes("pilot")) return "PILOT";
-  if (v.includes("cargo") || v.includes("warehouse")) return "CARGO";
-  if (v.includes("staff") || v.includes("ops")) return "STAFF";
   return null;
 }
 

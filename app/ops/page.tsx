@@ -94,6 +94,36 @@ export default async function OpsPage() {
         </Card>
       </div>
 
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <Link
+          href="/ops/trips"
+          className="flex min-h-[108px] flex-col justify-between rounded-3xl border border-navy-900/10 bg-white p-6 shadow-sm"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Flight ops</p>
+          <p className="text-2xl font-semibold text-navy-950">Trips</p>
+          <p className="text-sm text-navy-800/60">Internal trip board — not a public airline door.</p>
+        </Link>
+        {canPeople ? (
+          <Link
+            href="/ops/employees"
+            className="flex min-h-[108px] flex-col justify-between rounded-3xl border border-navy-900/10 bg-white p-6 shadow-sm"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Flight ops</p>
+            <p className="text-2xl font-semibold text-navy-950">Employees</p>
+            <p className="text-sm text-navy-800/60">Staff seats for trips and assignments.</p>
+          </Link>
+        ) : (
+          <Link
+            href="/ops/assignments"
+            className="flex min-h-[108px] flex-col justify-between rounded-3xl border border-navy-900/10 bg-white p-6 shadow-sm"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Flight ops</p>
+            <p className="text-2xl font-semibold text-navy-950">Assignments</p>
+            <p className="text-sm text-navy-800/60">Next actions tied to trips and freight.</p>
+          </Link>
+        )}
+      </div>
+
       {canPeople && (
         <Card className="mt-4 p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-forest-700">Employees</p>
