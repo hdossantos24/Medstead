@@ -5,13 +5,18 @@ import { CopyAddress } from "@/components/copy-address";
 import { Badge, Button, Card } from "@/components/ui";
 import { currentUser } from "@/lib/auth";
 import { SERVICE_LABEL, STATUS_LABEL, warehouseAddressFor } from "@/lib/constants";
+import { homePathForRole, isStaffRole } from "@/lib/staff";
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Account" };
 
 export default async function AccountPage() {
   const user = await currentUser();
+  if (user && isStaffRole(user.role)) {
+    redirect(homePathForRole(user.role));
+  }
 
   if (!user) {
     return (

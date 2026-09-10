@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
 
   const data = parsed.data;
   const user = await currentUser();
+  const customerId = user && user.role === "CUSTOMER" ? user.id : undefined;
   const origin = ORIGINS.find((o) => o.code === data.originCode);
   const dest = DESTINATIONS.find((d) => d.code === data.destCode);
 
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
   const booking = await prisma.booking.create({
     data: {
       bookingCode,
-      userId: user?.id,
+      userId: customerId,
       contactName: data.contactName.trim(),
       contactEmail: data.contactEmail.toLowerCase().trim(),
       contactPhone: data.contactPhone.trim(),

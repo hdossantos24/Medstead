@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isOps, opsIdentity } from "@/lib/auth";
+import { actorAllows, opsIdentity, requireOpsApi, type OpsActor } from "@/lib/auth";
 import { BOOKING_STATUSES } from "@/lib/constants";
 import {
   MARK_PAID_ELIGIBLE_INVOICE,
@@ -11,10 +11,16 @@ import {
 } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 
-export async function PATCH(req: NextRequest, { params }: { params: { code: string } }) {
-  if (!isOps()) {
-    return NextResponse.json({ error: "Ops sign-in required" }, { status: 401 });
+function paidByLabel(actor: OpsActor): string {
+  if (actor.kind === "staff") {
+    return actor.user.email || actor.user.name || "staff";
   }
+  return opsIdentity() || "ops-desk";
+}
+
+export async function PATCH(req: NextRequest, { params }: { params: { code: string } }) {
+  const gate = await requireOpsApi();
+  if (!gate.actor) return NextResponse.json({ error: gate.error }, { status: gate.status });
 
   const code = decodeURIComponent(params.code);
   const booking = await prisma.booking.findUnique({
@@ -34,6 +40,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { code: stri
     reference?: string;
   };
 
+  if (body.status || body.note) {
+    if (!(await actorAllows(gate.actor, "update_tracking"))) {
+      return NextResponse.json({ error: "That seat cannot update tracking." }, { status: 403 });
+    }
+  }
+  if (body.action && !(await actorAllows(gate.actor, "issue_invoice"))) {
+    return NextResponse.json({ error: "That seat cannot issue invoice / pay later." }, { status: 403 });
+  }
+
   if (body.status) {
     if (!BOOKING_STATUSES.includes(body.status as (typeof BOOKING_STATUSES)[number])) {
       return NextResponse.json({ error: "Unknown status" }, { status: 400 });
@@ -52,7 +67,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { code: stri
   }
 
   if (body.action === "issue_invoice") {
-    const amount = Number(body.amountUsd);
+    const amount = Number(body.amountUsd ?? booking.invoiceUsd ?? booking.estimateUsd);
     if (!amount || amount <= 0) {
       return NextResponse.json({ error: "Enter an invoice amount" }, { status: 400 });
     }
@@ -64,7 +79,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { code: stri
         invoiceStatus: invoice.status,
         invoiceRef: invoice.reference,
         paymentProvider: invoice.provider,
-        status: booking.status === "REQUESTED" ? "INVOICE_ISSUED" : booking.status,
+        status: booking.status === "REQUESTED" || booking.status === "CONFIRMED" ? "INVOICE_ISSUED" : booking.status,
       },
     });
     await prisma.trackingEvent.create({
@@ -139,7 +154,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { code: stri
       return NextResponse.json({ error: validated.error }, { status: 400 });
     }
 
-    const paidBy = opsIdentity() || "ops-desk";
+    const paidBy = paidByLabel(gate.actor);
     const audit = buildMarkPaidAudit({
       paymentMethod: validated.paymentMethod,
       amountUsd: validated.amountUsd,
