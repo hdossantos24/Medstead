@@ -147,15 +147,17 @@ export default async function TripsPage() {
                 {m.assignedPilot && (
                   <p className="mt-1 text-sm text-navy-800/60">Pilot {m.assignedPilot.name}</p>
                 )}
-                {m.lastSyncedAt && (
+                {faConfigured && m.lastSyncedAt ? (
                   <p className="mt-1 text-xs text-navy-800/45">
                     FA synced {m.lastSyncedAt.toISOString().replace("T", " ").slice(0, 16)} UTC
                   </p>
-                )}
+                ) : !faConfigured ? (
+                  <p className="mt-1 text-xs text-navy-800/45">Live FA times hidden until FLIGHTAWARE_API_KEY is set</p>
+                ) : null}
               </div>
               <div className="flex flex-wrap gap-2">
                 <Badge>{MOVEMENT_STATUS_LABEL[m.status as MovementStatusName]}</Badge>
-                <FaBadge status={m.faStatus} text={m.faStatusText} />
+                <FaBadge status={m.faStatus} text={m.faStatusText} configured={faConfigured} />
               </div>
             </div>
             {m.notes && <p className="mt-3 text-sm text-navy-800/70">{m.notes}</p>}

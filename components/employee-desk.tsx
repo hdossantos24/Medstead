@@ -109,6 +109,18 @@ export function EmployeeDesk({
         </form>
       </Card>
 
+      {employees.some((e) => e.mustResetPassword) ? (
+        <Card className="border-amber-300/80 bg-amber-50/80 p-4">
+          <p className="text-sm font-semibold text-navy-950">
+            {employees.filter((e) => e.mustResetPassword).length} seat
+            {employees.filter((e) => e.mustResetPassword).length === 1 ? "" : "s"} still need a password
+          </p>
+          <p className="mt-1 text-xs text-navy-800/65">
+            Imported Flight Ops invites stay locked until an admin sets a credential here (share out of band — no email).
+          </p>
+        </Card>
+      ) : null}
+
       <div className="grid gap-3">
         {employees.map((emp) => (
           <Card key={emp.id} className="p-5">
@@ -142,22 +154,29 @@ export function EmployeeDesk({
                 >
                   {emp.active ? "Disable" : "Enable"}
                 </Button>
-                {emp.mustResetPassword ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      const password = window.prompt("Set a temporary password (8+ characters). Share it out of band.");
-                      if (!password || password.length < 8) {
-                        setError("Password must be at least 8 characters.");
-                        return;
-                      }
-                      patchEmployee(emp.id, { name: emp.name, email: emp.email, role: emp.role, password, active: true });
-                    }}
-                  >
-                    Set password & enable
-                  </Button>
-                ) : null}
+                <Button
+                  type="button"
+                  variant={emp.mustResetPassword ? "green" : "outline"}
+                  onClick={() => {
+                    const label = emp.mustResetPassword
+                      ? "Set a temporary password (8+ characters), then enable this seat. Share it out of band."
+                      : "Reset password (8+ characters). Share the new password out of band.";
+                    const password = window.prompt(label);
+                    if (!password || password.length < 8) {
+                      setError("Password must be at least 8 characters.");
+                      return;
+                    }
+                    patchEmployee(emp.id, {
+                      name: emp.name,
+                      email: emp.email,
+                      role: emp.role,
+                      password,
+                      active: emp.mustResetPassword ? true : emp.active,
+                    });
+                  }}
+                >
+                  {emp.mustResetPassword ? "Set password & enable" : "Reset password"}
+                </Button>
               </div>
             </div>
           </Card>

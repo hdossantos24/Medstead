@@ -49,7 +49,7 @@ export function SyncFlightAwareButton({
               ? movementId
                 ? "Synced this flight"
                 : `Synced ${data.synced || 0} flights`
-              : "Monitor offline — add FLIGHTAWARE_API_KEY in Vercel",
+              : "FA not configured — add FLIGHTAWARE_API_KEY in Vercel",
           );
           router.refresh();
         }}
@@ -57,7 +57,7 @@ export function SyncFlightAwareButton({
         {busy ? "Syncing…" : movementId ? "Refresh FA" : "Sync all FA"}
       </Button>
       {!configured && (
-        <span className="text-xs text-navy-800/55">FlightAware key not set (offline OK)</span>
+        <span className="text-xs text-navy-800/55">FA not configured — offline OK</span>
       )}
       {msg && <span className="text-xs text-navy-800/70">{msg}</span>}
     </div>

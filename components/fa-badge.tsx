@@ -15,13 +15,24 @@ const TONE: Record<string, "green" | "blue" | "navy" | "amber"> = {
 export function FaBadge({
   status,
   text,
+  configured,
 }: {
   status?: string | null;
   text?: string | null;
+  /** When false, never show stale live FA statuses as if the monitor were online. */
+  configured?: boolean;
 }) {
+  if (configured === false) {
+    return <Badge tone="navy">FA not configured</Badge>;
+  }
   if (!status) return <Badge tone="navy">No monitor</Badge>;
   const label = FA_STATUS_LABEL[status as FaStatus] || status;
   const tone = TONE[status] || "navy";
   const detail = text && text !== label ? ` · ${text.slice(0, 36)}` : "";
-  return <Badge tone={tone}>{label}{detail}</Badge>;
+  return (
+    <Badge tone={tone}>
+      {label}
+      {detail}
+    </Badge>
+  );
 }
