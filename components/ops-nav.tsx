@@ -63,17 +63,14 @@ export function OpsBottomNav({ role }: { role: string }) {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-navy-900/10 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-      <ul
-        className="mx-auto grid max-w-3xl overflow-x-auto"
-        style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
-      >
+      <ul className="mx-auto flex max-w-3xl snap-x snap-mandatory gap-0 overflow-x-auto px-1">
         {tabs.map((tab) => {
           const on = tab.match(path, lane);
           return (
-            <li key={tab.href + tab.label}>
+            <li key={tab.href + tab.label} className="min-w-[4.25rem] flex-1 snap-start sm:min-w-0">
               <Link
                 href={tab.href}
-                className={`flex min-h-[56px] flex-col items-center justify-center gap-0.5 px-0.5 text-center text-[10px] font-semibold leading-tight sm:text-[11px] ${
+                className={`flex min-h-[56px] flex-col items-center justify-center gap-0.5 px-1 text-center text-[10px] font-semibold leading-tight sm:text-[11px] ${
                   on ? "text-forest-700" : "text-navy-800/55"
                 }`}
               >

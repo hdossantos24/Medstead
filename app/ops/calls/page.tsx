@@ -44,9 +44,9 @@ export default async function OpsCallsPage() {
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest-700">Phone desk</p>
       <h1 className="mt-3 text-3xl font-semibold text-navy-950">Call Log</h1>
       <p className="mt-2 text-sm text-navy-800/70">
-        Facility / caller only — no patient name, DOB, MRN, or diagnosis. Call Center posts to{" "}
-        <code className="rounded bg-slate-100 px-1 text-xs">POST /api/calls/ingest</code>. One next
-        job below; mark done clears the assignment.
+        Facility / caller only — no patient name, DOB, MRN, or diagnosis. Call Center ingest is live
+        via <code className="rounded bg-slate-100 px-1 text-xs">POST /api/calls/ingest</code>. One
+        next job below; mark done clears the assignment.
       </p>
 
       <div className="mt-8">
@@ -78,12 +78,18 @@ export default async function OpsCallsPage() {
         </div>
 
         {calls.length === 0 ? (
-          <Card className="p-8 text-center">
+          <Card className="p-6 text-center sm:p-8">
             <p className="text-lg font-semibold text-navy-950">No calls logged yet</p>
-            <p className="mt-2 text-sm text-navy-800/60">
-              When Call Center posts with the shared token, rows land here and Del gets a dispatch
-              next-action.
+            <p className="mt-2 text-sm leading-6 text-navy-800/60">
+              Call Center ingest is live. New phone intake appears here and opens a dispatch
+              next-action for Del — check Assignments when a call lands.
             </p>
+            <Link
+              href="/ops/assignments"
+              className="mt-4 inline-flex min-h-[44px] items-center text-sm font-semibold text-forest-700 hover:underline"
+            >
+              Open Assignments
+            </Link>
           </Card>
         ) : (
           <ul className="space-y-3">
