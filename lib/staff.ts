@@ -18,7 +18,7 @@ export type Permission = (typeof PERMISSIONS)[number];
 
 export const DEFAULT_RULES: Record<StaffRole, Permission[]> = {
   ADMIN: [...PERMISSIONS],
-  STAFF: ["update_tracking", "issue_invoice", "view_all_bookings", "assign_work"],
+  STAFF: ["update_tracking", "issue_invoice", "view_all_bookings", "assign_work", "view_trips"],
   PILOT: ["view_trips"],
   CARGO: ["update_tracking", "view_cargo_queue", "view_all_bookings", "view_trips"],
 };

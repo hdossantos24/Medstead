@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MedStead</string>
+    <string name="title_activity_main">MedStead</string>
+    <string name="package_name">com.medstead.transport</string>
+    <string name="custom_url_scheme">com.medstead.transport</string>
+</resources>

@@ -23,7 +23,7 @@ export default async function EmployeesPage() {
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest-700">Flight ops · admin</p>
       <h1 className="mt-3 text-3xl font-semibold text-navy-950">Employees</h1>
       <p className="mt-2 text-sm text-navy-800/70">
-        Staff seats for the internal Flight ops desk. Imported Bolt seats arrive as inactive invites — set a credential in People before anyone signs in. Same seats are what the future MTG Airways app will assign against. Not a public airline door.
+        Staff seats for the internal Flight ops desk. Imported Bolt seats arrive as inactive invites — set a credential in People before anyone signs in. Internal ops only.
       </p>
       <div className="mt-8">
         <EmployeeDesk

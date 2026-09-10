@@ -182,10 +182,26 @@ model Movement {
   capacityWeightLb Float?
   capacityPieces   Int?
   capacitySeats    Int?
-  operatorName     String         @default("MTG Airways")
+  /// Internal operator label only — never public marketing copy.
+  operatorName     String         @default("MedStead Ops")
   notes            String?
   assignedPilotId  String?
   assignedPilot    User?          @relation("MovementPilot", fields: [assignedPilotId], references: [id])
+  aircraftId       String?
+  aircraft         Aircraft?      @relation(fields: [aircraftId], references: [id], onDelete: SetNull)
+  /// Tail or airline ident used to query FlightAware AeroAPI (e.g. N127TX).
+  flightIdent      String?
+  /// FlightAware fa_flight_id when known from a prior sync.
+  faFlightId       String?
+  /// Normalized badge: SCHEDULED | EN_ROUTE | ON_TIME | DELAYED | CANCELED | ARRIVED | UNKNOWN | OFFLINE
+  faStatus         String?
+  faStatusText     String?
+  faDelaySeconds   Int?
+  lastSyncedAt     DateTime?
+  scheduledOut     DateTime?
+  actualOut        DateTime?
+  scheduledIn      DateTime?
+  actualIn         DateTime?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   bookings         Booking[]
@@ -195,6 +211,22 @@ model Movement {
 
   @@index([kind, status])
   @@index([scheduledAt])
+  @@index([flightIdent])
+  @@index([aircraftId])
+  @@index([faStatus])
+}
+
+/// Company aircraft / tails for internal fleet desk (not a public airline catalog).
+model Aircraft {
+  id         String     @id @default(cuid())
+  tailNumber String     @unique
+  label      String?
+  typeName   String?
+  active     Boolean    @default(true)
+  notes      String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  movements  Movement[]
 }
 
 model MovementDocument {

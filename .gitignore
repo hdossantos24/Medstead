@@ -16,3 +16,10 @@ import-data/**
 !import-data/.gitkeep
 !import-data/flight-ops/
 !import-data/flight-ops/.gitkeep
+
+# Capacitor / Android local builds
+android/app/build/
+android/.gradle/
+android/local.properties
+*.keystore
+*.jks

@@ -4,6 +4,27 @@ import { isStaffRole } from "@/lib/staff";
 import { MOVEMENT_KINDS, nextMovementCode, type MovementKindName } from "@/lib/airline-seam";
 import { prisma } from "@/lib/prisma";
 
+export async function GET(req: NextRequest) {
+  const gate = await requireOpsApi("view_trips");
+  if (!gate.actor) return NextResponse.json({ error: gate.error }, { status: gate.status });
+
+  const openOnly = req.nextUrl.searchParams.get("open") !== "0";
+  const movements = await prisma.movement.findMany({
+    where: openOnly
+      ? { status: { in: ["REQUESTED", "SCHEDULED", "DISPATCHED", "HOLD"] } }
+      : undefined,
+    include: {
+      assignedPilot: { select: { id: true, name: true } },
+      aircraft: { select: { id: true, tailNumber: true, label: true } },
+      bookings: { select: { bookingCode: true, status: true, destLabel: true } },
+      passengers: { select: { id: true, name: true, email: true } },
+    },
+    orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }],
+    take: 80,
+  });
+  return NextResponse.json({ ok: true, movements });
+}
+
 export async function POST(req: NextRequest) {
   const gate = await requireOpsApi("manage_schedule");
   if (!gate.actor) return NextResponse.json({ error: gate.error }, { status: gate.status });
@@ -18,6 +39,10 @@ export async function POST(req: NextRequest) {
     capacitySeats?: number | null;
     assignedPilotId?: string | null;
     bookingCode?: string | null;
+    bookingCodes?: string[];
+    passengerIds?: string[];
+    aircraftId?: string | null;
+    flightIdent?: string | null;
     notes?: string | null;
   };
 
@@ -32,8 +57,15 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  if (body.aircraftId) {
+    const ac = await prisma.aircraft.findUnique({ where: { id: body.aircraftId } });
+    if (!ac || !ac.active) return NextResponse.json({ error: "Unknown or inactive aircraft." }, { status: 400 });
+  }
+
   const origin = body.originCode.trim().toUpperCase();
   const dest = body.destCode.trim().toUpperCase();
+  const flightIdent = body.flightIdent?.trim().toUpperCase() || null;
+
   const movement = await prisma.movement.create({
     data: {
       movementCode: nextMovementCode(body.kind, origin, dest),
@@ -46,16 +78,30 @@ export async function POST(req: NextRequest) {
       capacityPieces: body.capacityPieces ?? null,
       capacitySeats: body.capacitySeats ?? null,
       assignedPilotId: body.assignedPilotId || null,
+      aircraftId: body.aircraftId || null,
+      flightIdent,
       notes: body.notes || null,
-      operatorName: "MTG Airways",
+      operatorName: "MedStead Ops",
+      faStatus: flightIdent || body.aircraftId ? "UNKNOWN" : null,
     },
   });
 
-  if (body.bookingCode) {
-    const booking = await prisma.booking.findUnique({ where: { bookingCode: body.bookingCode.trim() } });
+  const codes = [
+    ...(body.bookingCode ? [body.bookingCode.trim()] : []),
+    ...(body.bookingCodes || []).map((c) => c.trim()).filter(Boolean),
+  ];
+  for (const code of codes) {
+    const booking = await prisma.booking.findUnique({ where: { bookingCode: code } });
     if (booking) {
       await prisma.booking.update({ where: { id: booking.id }, data: { movementId: movement.id } });
     }
+  }
+
+  if (body.passengerIds?.length) {
+    await prisma.passenger.updateMany({
+      where: { id: { in: body.passengerIds } },
+      data: { movementId: movement.id },
+    });
   }
 
   if (body.assignedPilotId) {
