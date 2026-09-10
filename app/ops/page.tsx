@@ -18,8 +18,8 @@ export default async function OpsPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest-700">Internal</p>
         <h1 className="mt-3 text-3xl font-semibold text-navy-950">Ops desk</h1>
         <p className="mt-3 text-sm text-navy-800/70">
-          Update tracking and issue invoice / pay-later. This is not a customer page. Each employee
-          signs in with their own work email.
+          Update tracking, issue invoices, and mark wire/cash paid. This is not a customer page. Each
+          employee signs in with their own work email.
         </p>
         <div className="mt-6">
           <OpsLogin />
@@ -54,7 +54,7 @@ export default async function OpsPage() {
       <h1 className="mt-3 text-3xl font-semibold text-navy-950">Do this next</h1>
       <p className="mt-2 text-sm text-navy-800/70">
         One platform. Freight bookings and staff assignments. Simulated tracking is OK in v1. Invoice /
-        pay later — no card rail is live.
+        pay later + ops mark-paid (wire/cash). No card rail is live.
       </p>
 
       <div className="mt-8">

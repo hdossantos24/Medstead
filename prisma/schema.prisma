@@ -105,14 +105,40 @@ model Booking {
   invoiceStatus    String   @default("none")
   invoiceRef       String?
   paymentProvider  String   @default("invoice_pay_later")
+  /// Denormalized latest mark-paid (also stored append-only on PaymentRecord)
+  paidAt           DateTime?
+  paidBy           String?
+  paymentMethod    String?
+  paymentReference String?
+  paymentNote      String?
   notes            String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   events           TrackingEvent[]
+  payments         PaymentRecord[]
   assignments      WorkAssignment[]
   documents        MovementDocument[]
   movementId       String?
   movement         Movement?          @relation(fields: [movementId], references: [id])
+}
+
+/// Append-only audit of ops (or later webhook) payment confirmations.
+/// Never store bank account numbers, card PANs, or raw OPS_PIN here.
+model PaymentRecord {
+  id                 String   @id @default(cuid())
+  bookingId          String
+  booking            Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  paidAt             DateTime @default(now())
+  paidBy             String
+  paymentMethod      String
+  amountUsd          Float
+  reference          String?
+  note               String?
+  priorInvoiceStatus String
+  bookingStatusAfter String
+  createdAt          DateTime @default(now())
+
+  @@index([bookingId])
 }
 
 /// Staff next-action / trip assignment. FLIGHT_TRIP rows point at Movement.
