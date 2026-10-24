@@ -7,7 +7,8 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Booking confirmation" };
 
-export default async function ConfirmPage({ params }: { params: { code: string } }) {
+export default async function ConfirmPage(props: { params: Promise<{ code: string }> }) {
+  const params = await props.params;
   const code = decodeURIComponent(params.code);
   const booking = await prisma.booking.findUnique({ where: { bookingCode: code } });
 

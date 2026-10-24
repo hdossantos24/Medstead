@@ -4,7 +4,8 @@ import { isStaffRole } from "@/lib/staff";
 import { MOVEMENT_STATUSES, type MovementStatusName } from "@/lib/airline-seam";
 import { prisma } from "@/lib/prisma";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const gate = await requireOpsApi("manage_schedule");
   if (!gate.actor) return NextResponse.json({ error: gate.error }, { status: gate.status });
 
