@@ -14,7 +14,8 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Shipment tracking" };
 
-export default async function TrackDetailPage({ params }: { params: { code: string } }) {
+export default async function TrackDetailPage(props: { params: Promise<{ code: string }> }) {
+  const params = await props.params;
   const code = decodeURIComponent(params.code);
   const booking = await prisma.booking.findUnique({
     where: { bookingCode: code },

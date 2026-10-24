@@ -22,13 +22,13 @@ export async function POST(req: NextRequest) {
     if (!user.active || !isStaffRole(user.role)) {
       return NextResponse.json({ error: "Staff sign-in only. Customers use Account." }, { status: 403 });
     }
-    setUserCookie(user.id);
+    await setUserCookie(user.id);
     return NextResponse.json({ ok: true, role: user.role, home: homePathForRole(user.role) });
   }
 
   if (!body.pin || !opsPinOk(body.pin)) {
     return NextResponse.json({ error: "PIN not accepted" }, { status: 401 });
   }
-  setOpsCookie();
+  await setOpsCookie();
   return NextResponse.json({ ok: true, role: "PIN", home: "/ops" });
 }

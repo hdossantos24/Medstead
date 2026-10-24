@@ -6,11 +6,12 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Orders & Packages" };
 
-export default async function OpsOrdersPage({
-  searchParams,
-}: {
-  searchParams: { lane?: string; queue?: string };
-}) {
+export default async function OpsOrdersPage(
+  props: {
+    searchParams: Promise<{ lane?: string; queue?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const actor = await requireStaffPage(["ADMIN", "STAFF", "CARGO"]);
   const cargo = searchParams.lane === "cargo" || (actor.kind === "staff" && actor.user.role === "CARGO");
   const queue = searchParams.queue === "unpaid" ? "unpaid" : "all";

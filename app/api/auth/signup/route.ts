@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     if (!existing.active) {
       return NextResponse.json({ error: "This seat is disabled. Ask admin." }, { status: 403 });
     }
-    setUserCookie(existing.id);
+    await setUserCookie(existing.id);
     return NextResponse.json({ ok: true, id: existing.id, role: existing.role, home: homePathForRole(existing.role) });
   }
 
@@ -43,6 +43,6 @@ export async function POST(req: NextRequest) {
     data: { userId: user.id },
   });
 
-  setUserCookie(user.id);
+  await setUserCookie(user.id);
   return NextResponse.json({ ok: true, id: user.id, role: user.role, home: "/account" });
 }

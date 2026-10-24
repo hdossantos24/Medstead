@@ -3,7 +3,8 @@ import { requireAirlineSeam } from "@/lib/airline-auth";
 import { DOCUMENT_KINDS, type DocumentWrite } from "@/lib/airline-seam";
 import { prisma } from "@/lib/prisma";
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const gate = await requireAirlineSeam(req);
   if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: 401 });
 

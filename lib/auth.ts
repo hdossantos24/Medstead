@@ -61,9 +61,9 @@ export async function checkPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
 }
 
-export function setUserCookie(userId: string) {
+export async function setUserCookie(userId: string) {
   const exp = Math.floor(Date.now() / 1000) + MAX_AGE;
-  cookies().set(SESSION_COOKIE, encode({ sub: userId, exp }), {
+  (await cookies()).set(SESSION_COOKIE, encode({ sub: userId, exp }), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -72,13 +72,13 @@ export function setUserCookie(userId: string) {
   });
 }
 
-export function clearUserCookie() {
-  cookies().set(SESSION_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
+export async function clearUserCookie() {
+  (await cookies()).set(SESSION_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
 }
 
-export function setOpsCookie() {
+export async function setOpsCookie() {
   const exp = Math.floor(Date.now() / 1000) + MAX_AGE;
-  cookies().set(OPS_COOKIE, encode({ role: "ops", exp }), {
+  (await cookies()).set(OPS_COOKIE, encode({ role: "ops", exp }), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -87,20 +87,20 @@ export function setOpsCookie() {
   });
 }
 
-export function clearOpsCookie() {
-  cookies().set(OPS_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
+export async function clearOpsCookie() {
+  (await cookies()).set(OPS_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
 }
 
 export async function currentUser() {
-  const token = cookies().get(SESSION_COOKIE)?.value;
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const data = verify(token);
   if (!data?.sub || (data.exp && data.exp < Date.now() / 1000)) return null;
   return prisma.user.findUnique({ where: { id: data.sub } });
 }
 
-export function isOps() {
-  const token = cookies().get(OPS_COOKIE)?.value;
+export async function isOps() {
+  const token = (await cookies()).get(OPS_COOKIE)?.value;
   if (!token) return false;
   const data = verify(token);
   if (!data || data.role !== "ops") return false;
@@ -109,8 +109,8 @@ export function isOps() {
 }
 
 /** Display label for audit (paidBy). Never returns or stores the raw OPS_PIN. */
-export function opsIdentity(): string | null {
-  if (!isOps()) return null;
+export async function opsIdentity(): Promise<string | null> {
+  if (!(await isOps())) return null;
   // Optional host override for multi-desk labeling; default is a stable session label.
   return process.env.OPS_STAFF_LABEL?.trim() || "ops-desk";
 }
@@ -132,7 +132,7 @@ export async function currentStaff() {
 export async function getOpsActor(): Promise<OpsActor | null> {
   const staff = await currentStaff();
   if (staff) return { kind: "staff", user: staff };
-  if (isOps()) return { kind: "pin", user: null };
+  if (await isOps()) return { kind: "pin", user: null };
   return null;
 }
 

@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "This seat is disabled. Ask admin." }, { status: 403 });
   }
 
-  setUserCookie(user.id);
+  await setUserCookie(user.id);
   return NextResponse.json({
     ok: true,
     role: user.role,

@@ -11,14 +11,15 @@ import {
 } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 
-function paidByLabel(actor: OpsActor): string {
+async function paidByLabel(actor: OpsActor): Promise<string> {
   if (actor.kind === "staff") {
     return actor.user.email || actor.user.name || "staff";
   }
-  return opsIdentity() || "ops-desk";
+  return (await opsIdentity()) || "ops-desk";
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { code: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ code: string }> }) {
+  const params = await props.params;
   const gate = await requireOpsApi();
   if (!gate.actor) return NextResponse.json({ error: gate.error }, { status: gate.status });
 
@@ -154,7 +155,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { code: stri
       return NextResponse.json({ error: validated.error }, { status: 400 });
     }
 
-    const paidBy = paidByLabel(gate.actor);
+    const paidBy = await paidByLabel(gate.actor);
     const audit = buildMarkPaidAudit({
       paymentMethod: validated.paymentMethod,
       amountUsd: validated.amountUsd,

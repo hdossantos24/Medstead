@@ -4,7 +4,8 @@ import { isStaffRole } from "@/lib/staff";
 import { prisma } from "@/lib/prisma";
 import { employeeInput } from "@/lib/validators";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const gate = await requireOpsApi("manage_employees");
   if (!gate.actor) return NextResponse.json({ error: gate.error }, { status: gate.status });
 
